@@ -300,8 +300,11 @@ steps:
   - name: Setup repository dependencies
     run: make setup
 engine:
-  id: copilot
-  model: "gpt-5.4"
+  id: claude
+  model: "llm-gateway/gpt-5.4"
+  env:
+    ANTHROPIC_BASE_URL: "https://elastic.litellm-prod.ai"
+    ANTHROPIC_API_KEY: ${{ secrets.CLAUDE_LITELLM_PROXY_API_KEY }}
 permissions:
   contents: read
   pull-requests: read
@@ -323,7 +326,7 @@ tools:
   github:
     toolsets: [repos, pull_requests]
 network:
-  allowed: [defaults, node, go]
+  allowed: [defaults, node, go, elastic.litellm-prod.ai]
 checkout:
   fetch-depth: 0
 safe-outputs:

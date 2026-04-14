@@ -373,6 +373,12 @@ Let `<id>` be `${{ needs.pre_activation.outputs.selected_change }}`.
 
 2. Read **`.agents/skills/openspec-verify-change/SKILL.md`** and perform verification **rooted at** `openspec/changes/<id>/` using the skill's steps (status / apply JSON for context files, completeness / correctness / coherence, **Issues by priority**: CRITICAL, WARNING, SUGGESTION, **Final assessment**).
 
+Whilst reviewing the implementation, do not raise issues covered by CI. For example, do not:
+  - Consider syntactic correctness of code.
+  - Run tests.
+
+Instead, check the results of Github actions runs for the PR.
+
 ## Structural allowlist and relevance
 
 3. **Structurally in scope** (no per-file relevance classification required):

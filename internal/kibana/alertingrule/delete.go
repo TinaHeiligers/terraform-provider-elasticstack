@@ -20,6 +20,7 @@ package alertingrule
 import (
 	"context"
 
+	"github.com/elastic/terraform-provider-elasticstack/internal/clients"
 	kibanaoapi "github.com/elastic/terraform-provider-elasticstack/internal/clients/kibanaoapi"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 )
@@ -38,9 +39,15 @@ func (r *Resource) Delete(ctx context.Context, req resource.DeleteRequest, resp 
 		return
 	}
 
+	client, diags := clients.MaybeNewKibanaAPIClientFromFrameworkResource(ctx, state.KibanaConnection, r.client)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	ruleID, spaceID := state.getRuleIDAndSpaceID()
 
-	oapiClient, err := r.client.GetKibanaOapiClient()
+	oapiClient, err := client.GetKibanaOapiClient()
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to get Kibana client", err.Error())
 		return

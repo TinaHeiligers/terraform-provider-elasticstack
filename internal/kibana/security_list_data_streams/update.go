@@ -20,6 +20,7 @@ package securitylistdatastreams
 import (
 	"context"
 
+	"github.com/elastic/terraform-provider-elasticstack/internal/clients"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 )
 
@@ -30,6 +31,12 @@ import (
 func (r *securityListDataStreamsResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var plan Model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	_, diags := clients.MaybeNewKibanaAPIClientFromFrameworkResource(ctx, plan.KibanaConnection, r.client)
+	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}

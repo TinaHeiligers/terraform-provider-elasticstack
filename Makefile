@@ -147,7 +147,7 @@ workflow-test: ## Run unit tests for workflow source generation
 
 .PHONY: check-workflows
 check-workflows: ## Check generated workflow markdown sources
-	@ go run ./scripts/compile-workflow-sources --manifest .github/workflows-src/manifest.json --check
+	@ go run ./scripts/compile-workflow-sources --manifest .github/workflows-src/manifest.json --check --verbose
 
 .PHONY: gen
 gen: docs-generate ## Generate the code and documentation

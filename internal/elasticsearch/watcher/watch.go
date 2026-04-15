@@ -183,7 +183,25 @@ func resourceWatchPut(ctx context.Context, d *schema.ResourceData, meta any) dia
 
 	watch.Body.ThrottlePeriodInMillis = d.Get("throttle_period_in_millis").(int)
 
-	if diags := elasticsearch.PutWatch(ctx, client, &watch); diags.HasError() {
+	watchBodyBytes, err := json.Marshal(watch.Body)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	// On update, Elasticsearch keeps an existing transform when the field is omitted from Put
+	// Watch JSON. Sending an empty transform object clears it. On create, omit the field:
+	// sending either null or an empty object changes semantics or breaks parsing on older versions.
+	if _, ok := d.GetOk("transform"); !ok && !d.IsNewResource() {
+		var body map[string]any
+		if err := json.Unmarshal(watchBodyBytes, &body); err != nil {
+			return diag.FromErr(err)
+		}
+		body["transform"] = map[string]any{}
+		watchBodyBytes, err = json.Marshal(body)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
+	if diags := elasticsearch.PutWatchBodyJSON(ctx, client, watch.WatchID, watch.Active, watchBodyBytes); diags.HasError() {
 		return diags
 	}
 
@@ -262,7 +280,7 @@ func resourceWatchRead(ctx context.Context, d *schema.ResourceData, meta any) di
 		return diag.FromErr(err)
 	}
 
-	if watch.Body.Transform != nil {
+	if len(watch.Body.Transform) > 0 {
 		transform, err := json.Marshal(watch.Body.Transform)
 		if err != nil {
 			return diag.FromErr(err)
@@ -270,6 +288,8 @@ func resourceWatchRead(ctx context.Context, d *schema.ResourceData, meta any) di
 		if err := d.Set("transform", string(transform)); err != nil {
 			return diag.FromErr(err)
 		}
+	} else if err := d.Set("transform", nil); err != nil {
+		return diag.FromErr(err)
 	}
 
 	if err := d.Set("throttle_period_in_millis", watch.Body.ThrottlePeriodInMillis); err != nil {

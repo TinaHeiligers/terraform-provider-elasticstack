@@ -1,5 +1,8 @@
-## ADDED Requirements
+# provider-kibana-connection-coverage Specification
 
+## Purpose
+TBD - created by archiving change verify-kibana-connection-coverage. Update Purpose after archive.
+## Requirements
 ### Requirement: Kibana entity coverage
 For every Terraform resource or data source registered by the provider whose type name has prefix `elasticstack_kibana_`, where coverage scope is determined by enumerating the SDK provider returned by `provider.New(...)` through its resource and data source maps and the Plugin Framework provider returned by `provider.NewFrameworkProvider(...)` through its resource and data source enumeration methods, the entity schema SHALL define `kibana_connection` using the shared provider schema helper for that implementation style.
 
@@ -15,7 +18,7 @@ For every Terraform resource or data source registered by the provider whose typ
 - **THEN** the provider coverage tests SHALL fail and identify that entity by name
 
 ### Requirement: Shared-helper equivalence
-Covered SDK entities SHALL expose a `kibana_connection` schema exactly equivalent to `internal/schema.GetKibanaConnectionSchema()`, and covered Plugin Framework entities SHALL expose a `kibana_connection` block exactly equivalent to `internal/schema.GetKbFWConnectionBlock()`. Covered entity-local definitions SHALL NOT expose deprecation metadata.
+Covered SDK entities SHALL expose a `kibana_connection` schema exactly equivalent to `internal/schema.GetKibanaEntityConnectionSchema()`, and covered Plugin Framework entities SHALL expose a `kibana_connection` block exactly equivalent to `internal/schema.GetKbFWConnectionBlock()`. Covered entity-local definitions SHALL NOT expose deprecation metadata.
 
 #### Scenario: Covered entity matches shared helper
 - **WHEN** a covered Kibana or Fleet entity is examined by the provider coverage tests
@@ -27,3 +30,4 @@ The provider SHALL enforce `kibana_connection` coverage through automated tests 
 #### Scenario: Coverage tests enforce the contract in normal workflows
 - **WHEN** provider unit tests run in local development or CI
 - **THEN** the `kibana_connection` coverage tests SHALL fail if a covered Kibana or Fleet entity is missing the expected schema definition
+

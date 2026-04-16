@@ -126,7 +126,7 @@ func TestAccResourceKibanaSecurityRole(t *testing.T) {
 }
 
 func checkResourceSecurityRoleDestroy(s *terraform.State) error {
-	apiClient, err := clients.NewAcceptanceTestingClient()
+	apiClient, err := clients.NewAcceptanceTestingKibanaScopedClient()
 	if err != nil {
 		return err
 	}

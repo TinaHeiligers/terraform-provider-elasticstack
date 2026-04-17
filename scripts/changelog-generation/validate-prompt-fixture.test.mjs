@@ -43,6 +43,58 @@ test('workflow.md.tmpl exists and is readable', () => {
   assert.ok(promptBody.length > 0, 'prompt body must not be empty');
 });
 
+test('workflow passes release context into gather-pr-evidence via supported env vars', () => {
+  assert.match(
+    rawPrompt,
+    /- name: Gather PR evidence\n\s+id: gather_pr_evidence\n\s+uses: actions\/github-script@v8\n\s+env:\n\s+PREVIOUS_TAG: \$\{\{ steps\.resolve_release_context\.outputs\.previous_tag \}\}\n\s+COMPARE_RANGE: \$\{\{ steps\.resolve_release_context\.outputs\.compare_range \}\}\n\s+MODE: \$\{\{ steps\.resolve_release_context\.outputs\.mode \}\}\n\s+TARGET_VERSION: \$\{\{ steps\.resolve_release_context\.outputs\.target_version \}\}/,
+    'workflow should pass release context through env vars before gather-pr-evidence runs'
+  );
+  assert.doesNotMatch(
+    rawPrompt,
+    /with:\n(?:.*\n)*?\s+(previous_tag|compare_range|mode|target_version): \$\{\{ steps\.resolve_release_context\.outputs\.(previous_tag|compare_range|mode|target_version) \}\}/,
+    'workflow should not rely on custom github-script inputs for gather-pr-evidence release context'
+  );
+});
+
+test('workflow uploads and downloads evidence as an artifact instead of cross-job JSON', () => {
+  assert.match(
+    rawPrompt,
+    /- name: Upload release evidence artifact\n\s+if: steps\.gather_pr_evidence\.outputs\.has_evidence == 'true'\n\s+uses: actions\/upload-artifact@v4\n\s+with:\n\s+name: changelog-release-evidence\n\s+path: \$\{\{ steps\.gather_pr_evidence\.outputs\.evidence_file_path \}\}\n\s+if-no-files-found: error/,
+    'workflow should upload the gathered evidence file as an artifact'
+  );
+  assert.match(
+    rawPrompt,
+    /- name: Download release evidence artifact\n\s+uses: actions\/download-artifact@v4\n\s+with:\n\s+name: changelog-release-evidence\n\s+path: \/tmp\/gh-aw\/agent\n\s+- name: Verify evidence manifest path\n\s+run: test -f \/tmp\/gh-aw\/agent\/evidence\.json/,
+    'workflow should download the artifact into the agent memory path and verify evidence.json exists'
+  );
+  assert.doesNotMatch(
+    rawPrompt,
+    /needs\.pre_activation\.outputs\.evidence_json|EVIDENCE_JSON|Write evidence manifest for agent/,
+    'workflow should not transport the full manifest through evidence_json or a bridge step'
+  );
+});
+
+test('workflow listens to pull_request_target for main', () => {
+  assert.match(
+    rawPrompt,
+    /pull_request_target:\n\s+branches:\n\s+- main\n\s+types: \[opened, synchronize, reopened\]/,
+    'workflow should listen to pull_request_target events targeting main'
+  );
+  assert.doesNotMatch(
+    rawPrompt,
+    /pull_request:\n\s+branches:\n\s+- main\n\s+types: \[opened, synchronize, reopened\]/,
+    'workflow should not listen to pull_request events targeting main'
+  );
+});
+
+test('workflow restricts pull_request_target to prep-release branches before agent activation', () => {
+  assert.match(
+    rawPrompt,
+    /\(github\.event_name != 'pull_request_target' \|\|\n\s+startsWith\(github\.head_ref, 'prep-release-'\)\) &&/,
+    'workflow should require prep-release-* for pull_request_target before agent activation'
+  );
+});
+
 // ---------------------------------------------------------------------------
 // Structural checks on the prompt body
 // ---------------------------------------------------------------------------

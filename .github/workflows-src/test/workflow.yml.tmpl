@@ -12,7 +12,6 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
     paths-ignore:
       - 'README.md'
-      - 'CHANGELOG.md'
   workflow_dispatch:
 
 permissions:
@@ -32,6 +31,28 @@ jobs:
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
         with:
           script: |
+            if (context.eventName === 'pull_request' && context.payload.pull_request?.head?.ref === 'generated-changelog') {
+              const pr = context.payload.pull_request;
+              const isActionsBot = pr?.user?.login === 'github-actions[bot]';
+              let changedFiles = [];
+              if (pr) {
+                changedFiles = await github.paginate(github.rest.pulls.listFiles, {
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: pr.number,
+                  per_page: 100,
+                });
+              }
+              const changesOnlyChangelog =
+                changedFiles.length > 0 &&
+                changedFiles.every((file) => file.filename === 'CHANGELOG.md');
+              if (isActionsBot && changesOnlyChangelog) {
+                core.info('generated-changelog bot PR changing only CHANGELOG.md detected; skipping full CI to allow auto-approve path.');
+                core.setOutput('should_run', 'false');
+                return;
+              }
+              core.info(`generated-changelog PR did not meet skip requirements (author=${pr?.user?.login ?? 'unknown'}, changelog_only=${changesOnlyChangelog}); running full CI.`);
+            }
             if (context.eventName === 'pull_request' && context.payload.action === 'ready_for_review') {
               core.setOutput('should_run', 'false');
               return;
@@ -360,7 +381,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
-      contents: read
+      contents: write
       pull-requests: write
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -370,6 +391,13 @@ jobs:
           cache: true
 
       - name: Evaluate auto-approval gates
+        id: evaluate-gates
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: go run ./scripts/auto-approve
+
+      - name: Enable auto-merge for generated-changelog PR
+        if: github.head_ref == 'generated-changelog' && steps.evaluate-gates.outputs.approved == 'true'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: gh pr merge --auto --squash "${{ github.event.pull_request.html_url }}"

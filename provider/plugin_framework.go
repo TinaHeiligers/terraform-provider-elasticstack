@@ -52,6 +52,7 @@ import (
 	"github.com/elastic/terraform-provider-elasticstack/internal/fleet/output"
 	"github.com/elastic/terraform-provider-elasticstack/internal/fleet/outputds"
 	"github.com/elastic/terraform-provider-elasticstack/internal/fleet/serverhost"
+	"github.com/elastic/terraform-provider-elasticstack/internal/kibana/agentbuilderagent"
 	"github.com/elastic/terraform-provider-elasticstack/internal/kibana/agentbuildertool"
 	"github.com/elastic/terraform-provider-elasticstack/internal/kibana/agentbuilderworkflow"
 	"github.com/elastic/terraform-provider-elasticstack/internal/kibana/alertingrule"
@@ -174,6 +175,7 @@ func (p *Provider) resources(_ context.Context) []func() resource.Resource {
 		ilm.NewResource,
 		func() resource.Resource { return &connectors.Resource{} },
 		agentpolicy.NewResource,
+		agentbuilderagent.NewResource,
 		agentbuildertool.NewResource,
 		agentbuilderworkflow.NewResource,
 		integration.NewResource,
@@ -219,6 +221,7 @@ func (p *Provider) dataSources(_ context.Context) []func() datasource.DataSource
 	return []func() datasource.DataSource{
 		indices.NewDataSource,
 		spaces.NewDataSource,
+		agentbuilderagent.NewDataSource,
 		agentbuildertool.NewDataSource,
 		agentbuilderworkflow.NewDataSource,
 		exportsavedobjects.NewDataSource,

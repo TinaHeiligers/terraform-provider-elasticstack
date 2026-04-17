@@ -23,6 +23,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
+	"regexp"
 	"strings"
 
 	"github.com/elastic/go-elasticsearch/v8/esapi"
@@ -32,6 +34,26 @@ import (
 	fwdiags "github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 )
+
+// DateMathIndexNameRe matches plain Elasticsearch date math index name expressions.
+// The pattern enforces:
+//   - opening `<`
+//   - a static prefix that starts with a valid non-start character (not -, _, +) and
+//     uses only the same character set allowed in ordinary static index names
+//   - at least one `{…}` section (the date math expression itself)
+//   - a closing `>` immediately after the last `}`
+//
+// This keeps the two validation paths (static vs date-math) consistent and avoids
+// accepting expressions that would be rejected as static names.
+var DateMathIndexNameRe = regexp.MustCompile(`^<[^-_+][a-z0-9!$%&'()+.;=@[\]^{}~_-]*\{[^<>]+\}>$`)
+
+// encodeDateMathIndexName URI-encodes a plain date math index name for use in an API
+// request path.  Characters inside the expression that have special meaning in a URL
+// path are percent-encoded so the Go HTTP client does not rewrite them.
+func encodeDateMathIndexName(name string) string {
+	// url.PathEscape encodes the string so it is safe for a path segment.
+	return url.PathEscape(name)
+}
 
 func PutIlm(ctx context.Context, apiClient *clients.ElasticsearchScopedClient, policy *models.Policy) fwdiags.Diagnostics {
 	policyBytes, err := json.Marshal(map[string]any{"policy": policy})
@@ -257,19 +279,35 @@ func DeleteIndexTemplate(ctx context.Context, apiClient *clients.ElasticsearchSc
 	return diags
 }
 
-func PutIndex(ctx context.Context, apiClient *clients.ElasticsearchScopedClient, index *models.Index, params *models.PutIndexParams) fwdiags.Diagnostics {
+// createIndexResponse is the minimal structure of the Elasticsearch Create Index API response.
+type createIndexResponse struct {
+	Index string `json:"index"`
+}
+
+// PutIndex creates an Elasticsearch index and returns the concrete index name from the
+// API response together with any diagnostics.  When the configured name is a plain date
+// math expression it is URI-encoded before being sent in the API request path so the Go
+// HTTP client does not rewrite the angle brackets or braces.
+func PutIndex(ctx context.Context, apiClient *clients.ElasticsearchScopedClient, index *models.Index, params *models.PutIndexParams) (string, fwdiags.Diagnostics) {
 	indexBytes, err := json.Marshal(index)
 	if err != nil {
-		return fwdiags.Diagnostics{
+		return "", fwdiags.Diagnostics{
 			fwdiags.NewErrorDiagnostic(err.Error(), err.Error()),
 		}
 	}
 
 	esClient, err := apiClient.GetESClient()
 	if err != nil {
-		return fwdiags.Diagnostics{
+		return "", fwdiags.Diagnostics{
 			fwdiags.NewErrorDiagnostic(err.Error(), err.Error()),
 		}
+	}
+
+	// URI-encode the name when it is a validated date math expression so the angle
+	// brackets and braces are not mangled by the HTTP transport layer.
+	indexAPIName := index.Name
+	if DateMathIndexNameRe.MatchString(index.Name) {
+		indexAPIName = encodeDateMathIndexName(index.Name)
 	}
 
 	opts := []func(*esapi.IndicesCreateRequest){
@@ -280,17 +318,34 @@ func PutIndex(ctx context.Context, apiClient *clients.ElasticsearchScopedClient,
 		esClient.Indices.Create.WithTimeout(params.Timeout),
 	}
 	res, err := esClient.Indices.Create(
-		index.Name,
+		indexAPIName,
 		opts...,
 	)
 	if err != nil {
-		return fwdiags.Diagnostics{
+		return "", fwdiags.Diagnostics{
 			fwdiags.NewErrorDiagnostic(err.Error(), err.Error()),
 		}
 	}
 	defer res.Body.Close()
-	diags := diagutil.CheckError(res, fmt.Sprintf("Unable to create index: %s", index.Name))
-	return diagutil.FrameworkDiagsFromSDK(diags)
+	if sdkDiags := diagutil.CheckError(res, fmt.Sprintf("Unable to create index: %s", index.Name)); sdkDiags.HasError() {
+		return "", diagutil.FrameworkDiagsFromSDK(sdkDiags)
+	}
+
+	var createResp createIndexResponse
+	if err := json.NewDecoder(res.Body).Decode(&createResp); err != nil {
+		return "", fwdiags.Diagnostics{
+			fwdiags.NewErrorDiagnostic("Failed to parse Create Index response", err.Error()),
+		}
+	}
+
+	// Fall back to the static name when the response does not include an index field
+	// (older cluster versions may omit it for non-date-math names).
+	concreteName := createResp.Index
+	if concreteName == "" {
+		concreteName = index.Name
+	}
+
+	return concreteName, nil
 }
 
 func DeleteIndex(ctx context.Context, apiClient *clients.ElasticsearchScopedClient, name string) fwdiags.Diagnostics {
@@ -311,6 +366,10 @@ func DeleteIndex(ctx context.Context, apiClient *clients.ElasticsearchScopedClie
 	return diagutil.FrameworkDiagsFromSDK(diags)
 }
 
+// GetIndex retrieves a single index by its concrete name.  The caller is responsible
+// for supplying the concrete index name (e.g. from id.ResourceID or the create
+// response), not a date math expression.  The response map key for a concrete name
+// always equals the requested name, so a direct key lookup is sufficient.
 func GetIndex(ctx context.Context, apiClient *clients.ElasticsearchScopedClient, name string) (*models.Index, fwdiags.Diagnostics) {
 	indices, diags := GetIndices(ctx, apiClient, name)
 	if diags.HasError() {

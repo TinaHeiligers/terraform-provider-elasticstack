@@ -24,7 +24,7 @@ Orchestrate an implementation loop around a single OpenSpec change.
 8. Send findings back to that task's implementor and repeat until clean, then move to the next top-level task
 9. Push the branch to `origin`
 10. **Commit mode**: Watch GitHub Actions on the pushed branch/commit  
-    **PR mode**: Create a PR, watch PR checks, add `verify-openspec` label after PR checks are successful, poll for PR reviews six times at 10-minute intervals, and address review feedback
+    **PR mode**: Create a PR, watch PR checks, run a deterministic PR-state poll on every cadence tick so CI and review feedback are checked together, add `verify-openspec` only after the current head is green and review feedback is addressed, and keep addressing feedback until the PR is approved for the current head
 11. Report final outcome
 
 **Steps**
@@ -253,20 +253,23 @@ Orchestrate an implementation loop around a single OpenSpec change.
     - record the PR number or URL
 
     **PR polling loop**:
-    - prefer PR-centric views such as `gh pr checks <pr>` plus `gh pr view <pr> --json reviews,comments` and, when needed, `gh api repos/{owner}/{repo}/pulls/<number>/reviews`
+    - use `.agents/skills/openspec-implementation-loop/check-pr-state.py <pr>` on every poll; it runs the required `gh` commands in one place and returns a single JSON payload covering PR checks, reviews, issue comments, review comments, and unresolved review threads
     - after each push, restart the PR polling loop from the beginning for the new PR head commit
-    - on every poll, check both CI state and new or unresolved review comments; do not treat comment polling as a separate schedule
+    - on every poll, inspect both the check summary and the review summary from that script output; do not treat comment polling as a separate schedule
+
+    Example:
+    ```bash
+    .agents/skills/openspec-implementation-loop/check-pr-state.py <pr>
+    ```
 
     **Polling cadence**:
     - poll Build/Lint and other fast required checks once per minute until they complete
     - if Build/Lint fails, collect the failing details immediately, launch a fresh write-capable implementor subagent scoped to the failure, ask it to fix and commit the issue, push, and then restart the polling loop for the new head commit without waiting for acceptance tests
     - monitor acceptance-test jobs every 5 minutes while they are still running
     - if an acceptance-test job fails, collect the failing details on that poll, launch a fresh write-capable implementor subagent scoped to the failure, ask it to fix and commit the issue, push, and then restart the polling loop for the new head commit
-    - each 5-minute acceptance poll must also check for new or unresolved review comments
-    - each 1-minute Build/Lint poll must also check for new or unresolved review comments
 
     **Review comment handling during polling**:
-    - on each poll, fetch current PR review state and determine whether there are new or unresolved review threads, comments, or requested changes
+    - on each poll, use the script output to determine whether there are new or unresolved review threads, review comments, issue comments, or requested changes
     - if there are actionable review comments, summarize the feedback
     - launch a fresh write-capable implementor subagent scoped only to addressing that review feedback with minimal commits
     - push updates; the PR updates automatically; then restart the polling loop for the new head commit

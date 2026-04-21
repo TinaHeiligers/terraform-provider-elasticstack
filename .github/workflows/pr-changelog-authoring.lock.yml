@@ -1,5 +1,5 @@
-# gh-aw-metadata: {"schema_version":"v3","frontmatter_hash":"dcbe745a0f1fb1f58e44d05283a620c240a66faab65934ca1150f8dc26c3d66f","compiler_version":"v0.68.3","strict":true,"agent_id":"claude","agent_model":"llm-gateway/gpt-5.4"}
-# gh-aw-manifest: {"version":1,"secrets":["CLAUDE_LITELLM_PROXY_API_KEY","GH_AW_CI_TRIGGER_TOKEN","GH_AW_GITHUB_MCP_SERVER_TOKEN","GH_AW_GITHUB_TOKEN","GITHUB_TOKEN"],"actions":[{"repo":"actions/checkout","sha":"34e114876b0b11c390a56381ad16ebd13914f8d5","version":"v4"},{"repo":"actions/checkout","sha":"de0fac2e4500dabe0009e67214ff5f5447ce83dd","version":"v6.0.2"},{"repo":"actions/download-artifact","sha":"3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c","version":"v8.0.1"},{"repo":"actions/download-artifact","sha":"d3f86a106a0bac45b974a628896c90dbdf5c8093","version":"v4"},{"repo":"actions/github-script","sha":"373c709c69115d41ff229c7e5df9f8788daa9553","version":"v9"},{"repo":"actions/github-script","sha":"ed597411d8f924073f98dfc5c65a23a2325f34cd","version":"v8"},{"repo":"actions/setup-go","sha":"4a3601121dd01d1626a1e23e37211e3254c1c06c","version":"v6"},{"repo":"actions/setup-node","sha":"53b83947a5a98c8d113130e565377fae1a50d02f","version":"v6"},{"repo":"actions/upload-artifact","sha":"043fb46d1a93c77aae656e7c1c64a875d1fc6a0a","version":"v7.0.1"},{"repo":"actions/upload-artifact","sha":"ea165f8d65b6e75b540449e92b4886f43607fa02","version":"v4"},{"repo":"github/gh-aw-actions/setup","sha":"ba90f2186d7ad780ec640f364005fa24e797b360","version":"v0.68.3"}],"containers":[{"image":"ghcr.io/github/gh-aw-firewall/agent:0.25.20"},{"image":"ghcr.io/github/gh-aw-firewall/api-proxy:0.25.20"},{"image":"ghcr.io/github/gh-aw-firewall/squid:0.25.20"},{"image":"ghcr.io/github/gh-aw-mcpg:v0.2.19"},{"image":"ghcr.io/github/github-mcp-server:v0.32.0"},{"image":"node:lts-alpine"}]}
+# gh-aw-metadata: {"schema_version":"v3","frontmatter_hash":"1dbf9c1467348b39a971b23290ae06383fe7b53a934c8ac53d3aeeb056ac9a03","compiler_version":"v0.68.3","strict":true,"agent_id":"claude","agent_model":"llm-gateway/gpt-5.4"}
+# gh-aw-manifest: {"version":1,"secrets":["CLAUDE_LITELLM_PROXY_API_KEY","GH_AW_GITHUB_MCP_SERVER_TOKEN","GH_AW_GITHUB_TOKEN","GITHUB_TOKEN"],"actions":[{"repo":"actions/checkout","sha":"de0fac2e4500dabe0009e67214ff5f5447ce83dd","version":"v6.0.2"},{"repo":"actions/download-artifact","sha":"3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c","version":"v8.0.1"},{"repo":"actions/github-script","sha":"373c709c69115d41ff229c7e5df9f8788daa9553","version":"v9"},{"repo":"actions/github-script","sha":"ed597411d8f924073f98dfc5c65a23a2325f34cd","version":"v8"},{"repo":"actions/setup-node","sha":"53b83947a5a98c8d113130e565377fae1a50d02f","version":"v6"},{"repo":"actions/upload-artifact","sha":"043fb46d1a93c77aae656e7c1c64a875d1fc6a0a","version":"v7.0.1"},{"repo":"github/gh-aw-actions/setup","sha":"ba90f2186d7ad780ec640f364005fa24e797b360","version":"v0.68.3"}],"containers":[{"image":"ghcr.io/github/gh-aw-firewall/agent:0.25.20"},{"image":"ghcr.io/github/gh-aw-firewall/api-proxy:0.25.20"},{"image":"ghcr.io/github/gh-aw-firewall/squid:0.25.20"},{"image":"ghcr.io/github/gh-aw-mcpg:v0.2.19"},{"image":"ghcr.io/github/github-mcp-server:v0.32.0"},{"image":"node:lts-alpine"}]}
 #    ___                   _   _      
 #   / _ \                 | | (_)     
 #  | |_| | __ _  ___ _ __ | |_ _  ___ 
@@ -22,27 +22,22 @@
 #
 # For more information: https://github.github.com/gh-aw/introduction/overview/
 #
-# Generates or updates CHANGELOG.md from merged pull requests. On schedule or workflow_dispatch, rewrites the Unreleased section. On prep-release-* pull requests, rewrites the concrete release section. Uses a deterministic pre-activation phase to resolve the previous release tag, compare range, merged PR set, and target section mode, then an agent phase to generate changelog content strictly from PR-level summaries with full provenance.
+# Ensures each pull request either contains a valid ## Changelog section in its body or explicitly opts out with the no-changelog label. Triggered after Build/Lint/Test completes. Deterministic pre-activation steps resolve the PR, check the no-changelog label, and validate any existing changelog section. The agent only drafts a missing section from PR title and description.
 #
 # Secrets used:
 #   - CLAUDE_LITELLM_PROXY_API_KEY
-#   - GH_AW_CI_TRIGGER_TOKEN
 #   - GH_AW_GITHUB_MCP_SERVER_TOKEN
 #   - GH_AW_GITHUB_TOKEN
 #   - GITHUB_TOKEN
 #
 # Custom actions used:
-#   - actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 #   - actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 #   - actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-#   - actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
 #   - actions/github-script@373c709c69115d41ff229c7e5df9f8788daa9553 # v9
 #   - actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
-#   - actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
 #   - actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
 #   - actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
 #   - actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-#   - actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
 #   - github/gh-aw-actions/setup@ba90f2186d7ad780ec640f364005fa24e797b360 # v0.68.3
 #
 # Container images used:
@@ -53,464 +48,390 @@
 #   - ghcr.io/github/github-mcp-server:v0.32.0
 #   - node:lts-alpine
 
-name: "Changelog Generation"
+name: "PR Changelog Authoring"
 "on":
-  pull_request_target:
-    branches:
-    - main
-    types:
-    - opened
-    - synchronize
-    - reopened
-  schedule:
-  - cron: "38 11 * * *"
-    # Friendly format: daily (scattered)
   # steps: # Steps injected into pre-activation job
-  # - name: Checkout repository
-    # uses: actions/checkout@v4
-    # with:
-      # fetch-depth: 0
-      # fetch-tags: true
-  # - id: resolve_release_context
-    # name: Resolve release context
+  # - id: check_pr_event
+    # name: Check for pull-request event
     # uses: actions/github-script@v8
     # with:
       # github-token: ${{ secrets.GITHUB_TOKEN }}
       # script: |
-        # const { execSync } = require('child_process');
-        # const RELEASE_BRANCH_PATTERN = /^prep-release-(.+)$/;
-        # const SEMVER_TAG_PATTERN = /^v\d+\.\d+\.\d+$/;
-        # 
-        # function resolveReleaseMode({ eventName, headBranch = '' }) {
-          # let mode = 'unreleased';
-          # let targetVersion = '';
-          # let targetBranch = 'generated-changelog';
-        # 
-          # if (eventName === 'pull_request' || eventName === 'pull_request_target') {
-            # const match = headBranch.match(RELEASE_BRANCH_PATTERN);
-            # if (match) {
-              # mode = 'release';
-              # targetVersion = match[1];
-              # targetBranch = headBranch;
-            # }
-          # }
-        # 
-          # return { mode, targetVersion, targetBranch };
+        # const eventName = context.payload.workflow_run?.event;
+        # const isPR = eventName === 'pull_request';
+        # core.info(`Triggering workflow_run event: ${eventName}`);
+        # core.setOutput('is_pr_event', isPR ? 'true' : 'false');
+        # if (!isPR) {
+          # core.info(`Skipping: workflow_run was triggered by event '${eventName}', not 'pull_request'`);
         # }
-        # 
-        # function parseSemverTags(tagsRaw = '') {
-          # return tagsRaw
-            # .split('\n')
-            # .map((tag) => tag.trim())
-            # .filter((tag) => SEMVER_TAG_PATTERN.test(tag));
-        # }
-        # 
-        # function selectPreviousTag({ tags = [], mode = 'unreleased', targetVersion = '' }) {
-          # const excludedTag = mode === 'release' && targetVersion ? `v${targetVersion}` : '';
-          # const candidates = excludedTag ? tags.filter((tag) => tag !== excludedTag) : tags;
-        # 
-          # return {
-            # previousTag: candidates[0] ?? '',
-            # excludedTag,
-            # excludedCurrentTag: Boolean(excludedTag) && candidates.length < tags.length,
-          # };
-        # }
-        # 
-        # function buildCompareRange(previousTag) {
-          # return previousTag ? `${previousTag}..HEAD` : 'HEAD';
-        # }
-        # 
-        # function buildReleaseContext({ eventName, headBranch = '', tags = [] }) {
-          # const modeResult = resolveReleaseMode({ eventName, headBranch });
-          # const previousTagResult = selectPreviousTag({
-            # tags,
-            # mode: modeResult.mode,
-            # targetVersion: modeResult.targetVersion,
-          # });
-        # 
-          # return {
-            # ...modeResult,
-            # ...previousTagResult,
-            # compareRange: buildCompareRange(previousTagResult.previousTag),
-          # };
-        # }
-        # 
-        # if (typeof module !== 'undefined') {
-          # module.exports = {
-            # RELEASE_BRANCH_PATTERN,
-            # SEMVER_TAG_PATTERN,
-            # buildCompareRange,
-            # buildReleaseContext,
-            # parseSemverTags,
-            # resolveReleaseMode,
-            # selectPreviousTag,
-          # };
-        # }
-        # 
-        # // Determine mode from event
-        # const eventName = context.eventName;
-        # const headBranch =
-          # context.payload.pull_request?.head?.ref ??
-          # context.payload.ref?.replace('refs/heads/', '') ??
-          # process.env.GITHUB_HEAD_REF ??
-          # process.env.GITHUB_REF_NAME ??
-          # '';
-        # 
-        # let tags = [];
-        # try {
-          # // List all tags matching vX.Y.Z semver pattern, sort by version, pick the latest
-          # const tagsRaw = execSync(
-            # 'git tag --list "v[0-9]*.[0-9]*.[0-9]*" --sort=-version:refname',
-            # { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }
-          # ).trim();
-        # 
-          # tags = parseSemverTags(tagsRaw);
-        # } catch (err) {
-          # core.warning(`Failed to list git tags: ${err.message}`);
-        # }
-        # 
-        # const releaseContext = buildReleaseContext({ eventName, headBranch, tags });
-        # 
-        # if (releaseContext.mode === 'release') {
-          # core.info(`Release mode: branch=${headBranch}, version=${releaseContext.targetVersion}`);
-        # }
-        # if (releaseContext.excludedCurrentTag) {
-          # core.info(
-            # `Excluded current release tag ${releaseContext.excludedTag} from previous tag candidates`
-          # );
-        # }
-        # if (releaseContext.previousTag) {
-          # core.info(`Resolved previous tag: ${releaseContext.previousTag}`);
-        # } else if (tags.length === 0) {
-          # core.warning('No semver release tags found; compare range will cover full history');
-        # }
-        # 
-        # core.setOutput('mode', releaseContext.mode);
-        # core.setOutput('target_version', releaseContext.targetVersion);
-        # core.setOutput('previous_tag', releaseContext.previousTag);
-        # core.setOutput('compare_range', releaseContext.compareRange);
-        # core.setOutput('target_branch', releaseContext.targetBranch);
-        # 
-        # core.info(`Mode: ${releaseContext.mode}`);
-        # core.info(`Compare range: ${releaseContext.compareRange}`);
-        # core.info(`Target branch: ${releaseContext.targetBranch}`);
-  # - env:
-      # COMPARE_RANGE: ${{ steps.resolve_release_context.outputs.compare_range }}
-      # MODE: ${{ steps.resolve_release_context.outputs.mode }}
-      # PREVIOUS_TAG: ${{ steps.resolve_release_context.outputs.previous_tag }}
-      # TARGET_VERSION: ${{ steps.resolve_release_context.outputs.target_version }}
-    # id: gather_pr_evidence
-    # name: Gather PR evidence
+  # - id: resolve_pr
+    # if: steps.check_pr_event.outputs.is_pr_event == 'true'
+    # name: Resolve pull request
     # uses: actions/github-script@v8
     # with:
       # github-token: ${{ secrets.GITHUB_TOKEN }}
       # script: |
         # const fs = require('fs');
-        # const { execSync } = require('child_process');
-        # const USER_FACING_LABELS = new Set([
-          # 'enhancement',
-          # 'bug',
-          # 'feature',
-          # 'breaking-change',
-          # 'deprecation',
-          # 'new-resource',
-          # 'new-data-source',
-        # ]);
-        # 
-        # const INTERNAL_LABELS = new Set([
-          # 'dependencies',
-          # 'chore',
-          # 'internal',
-          # 'documentation',
-          # 'ci',
-          # 'test',
-          # 'openspec',
-        # ]);
-        # 
-        # const PROVIDER_PATH_PREFIXES = ['internal/', 'pkg/', 'libs/', 'provider/', 'go.mod', 'go.sum'];
-        # 
-        # function getLabelNames(pr) {
-          # return (pr.labels ?? []).map((label) => label.name);
-        # }
-        # 
-        # function classifyPullRequestForChangelog(pr, files = []) {
-          # const labels = getLabelNames(pr);
-          # const hasUserFacingLabel = labels.some((label) => USER_FACING_LABELS.has(label));
-          # const hasInternalLabel = labels.some((label) => INTERNAL_LABELS.has(label));
-          # const isAutomated =
-            # pr.user?.login === 'dependabot[bot]' ||
-            # pr.user?.login === 'dependabot' ||
-            # pr.user?.login === 'github-actions[bot]';
-        # 
-          # const touchesProviderCode = files.some((file) =>
-            # PROVIDER_PATH_PREFIXES.some((prefix) => file.filename.startsWith(prefix))
-          # );
-          # const openspecOnly = files.length > 0 && files.every((file) => file.filename.startsWith('openspec/'));
-        # 
-          # let classification;
-          # let inclusionRationale;
-          # let exclusionRationale;
-        # 
-          # if (isAutomated) {
-            # classification = 'internal';
-            # exclusionRationale = `Automated PR by ${pr.user?.login}`;
-          # } else if (openspecOnly) {
-            # classification = 'internal';
-            # exclusionRationale = 'Touches only openspec/ files — no provider code changes';
-          # } else if (hasUserFacingLabel) {
-            # classification = 'user-facing';
-            # inclusionRationale = `Has user-facing label(s): ${labels
-              # .filter((label) => USER_FACING_LABELS.has(label))
-              # .join(', ')}`;
-          # } else if (hasInternalLabel && !touchesProviderCode) {
-            # classification = 'internal';
-            # exclusionRationale = `Has internal label(s): ${labels
-              # .filter((label) => INTERNAL_LABELS.has(label))
-              # .join(', ')} and does not touch provider code`;
-          # } else if (touchesProviderCode) {
-            # classification = 'user-facing';
-            # inclusionRationale = 'Touches provider implementation paths — presumed user-facing';
-          # } else {
-            # classification = 'uncertain';
-            # inclusionRationale = 'Classification uncertain — agent to decide';
-          # }
-        # 
-          # return {
-            # classification,
-            # inclusionRationale: inclusionRationale ?? null,
-            # exclusionRationale: exclusionRationale ?? null,
-          # };
-        # }
-        # 
-        # function parseCommitShas(raw = '') {
-          # return raw
-            # .split('\n')
-            # .map((sha) => sha.trim())
-            # .filter(Boolean);
-        # }
-        # 
-        # function selectMergedPullRequests(prs = []) {
-          # const seen = new Set();
-          # const merged = [];
-        # 
-          # for (const pr of prs) {
-            # if (pr.state === 'closed' && pr.merged_at && !seen.has(pr.number)) {
-              # seen.add(pr.number);
-              # merged.push(pr);
-            # }
-          # }
-        # 
-          # return merged;
-        # }
-        # 
-        # function buildPullRequestEvidence(pr, files = []) {
-          # const { classification, inclusionRationale, exclusionRationale } =
-            # classifyPullRequestForChangelog(pr, files);
-        # 
-          # return {
-            # number: pr.number,
-            # title: pr.title,
-            # url: pr.html_url,
-            # merge_commit_sha: pr.merge_commit_sha,
-            # author: pr.user?.login ?? 'unknown',
-            # labels: getLabelNames(pr),
-            # touched_files: files.map((file) => file.filename),
-            # classification,
-            # inclusion_rationale: inclusionRationale,
-            # exclusion_rationale: exclusionRationale,
-          # };
-        # }
-        # 
-        # function buildTargetSection({ mode = 'unreleased', targetVersion = '', date = new Date().toISOString() }) {
-          # if (mode === 'release' && targetVersion) {
-            # return `## [${targetVersion}] - ${String(date).split('T')[0]}`;
-          # }
-        # 
-          # return '## [Unreleased]';
-        # }
-        # 
-        # function countByClassification(evidence = []) {
-          # return {
-            # user_facing_count: evidence.filter((item) => item.classification === 'user-facing').length,
-            # internal_count: evidence.filter((item) => item.classification === 'internal').length,
-            # uncertain_count: evidence.filter((item) => item.classification === 'uncertain').length,
-          # };
-        # }
-        # 
-        # function buildEvidenceManifest({
-          # mode = 'unreleased',
-          # targetVersion = '',
-          # previousTag = '',
-          # compareRange = 'HEAD',
-          # evidence = [],
-          # generatedAt = new Date().toISOString(),
-        # }) {
-          # const counts = countByClassification(evidence);
-        # 
-          # return {
-            # generated_at: generatedAt,
-            # mode,
-            # target_section: buildTargetSection({ mode, targetVersion, date: generatedAt }),
-            # target_section_mode: mode,
-            # target_version: targetVersion,
-            # previous_tag: previousTag,
-            # compare_range: compareRange,
-            # pr_count: evidence.length,
-            # ...counts,
-            # pull_requests: evidence,
-          # };
-        # }
-        # 
-        # if (typeof module !== 'undefined') {
-          # module.exports = {
-            # INTERNAL_LABELS,
-            # PROVIDER_PATH_PREFIXES,
-            # USER_FACING_LABELS,
-            # buildEvidenceManifest,
-            # buildPullRequestEvidence,
-            # buildTargetSection,
-            # classifyPullRequestForChangelog,
-            # countByClassification,
-            # parseCommitShas,
-            # selectMergedPullRequests,
-          # };
-        # }
-        # 
-        # const path = require('path');
-        # 
-        # const DEFAULT_EVIDENCE_ARTIFACT_NAME = 'changelog-release-evidence';
-        # const DEFAULT_EVIDENCE_ARTIFACT_PATH = '/tmp/gh-aw/pre-activation/evidence.json';
-        # 
-        # function buildEvidenceArtifactPlan({
-          # manifest,
-          # artifactName = DEFAULT_EVIDENCE_ARTIFACT_NAME,
-          # artifactPath = DEFAULT_EVIDENCE_ARTIFACT_PATH,
-        # }) {
-          # if (!manifest || typeof manifest !== 'object' || Array.isArray(manifest)) {
-            # throw new Error('manifest must be a non-null object');
-          # }
-        # 
-          # if (!artifactName) {
-            # throw new Error('artifactName must be provided');
-          # }
-        # 
-          # if (!artifactPath) {
-            # throw new Error('artifactPath must be provided');
-          # }
-        # 
-          # return {
-            # artifactName,
-            # artifactPath,
-            # directory: path.dirname(artifactPath),
-            # formattedJson: JSON.stringify(manifest, null, 2),
-            # prCount: manifest.pr_count ?? '?',
-          # };
-        # }
-        # 
-        # if (typeof module !== 'undefined') {
-          # module.exports = {
-            # DEFAULT_EVIDENCE_ARTIFACT_NAME,
-            # DEFAULT_EVIDENCE_ARTIFACT_PATH,
-            # buildEvidenceArtifactPlan,
-          # };
-        # }
-        # 
-        # const previousTag = process.env.PREVIOUS_TAG || core.getInput('previous_tag') || process.env.INPUT_PREVIOUS_TAG || '';
-        # const compareRange = process.env.COMPARE_RANGE || core.getInput('compare_range') || process.env.INPUT_COMPARE_RANGE || 'HEAD';
-        # const mode = process.env.MODE || core.getInput('mode') || process.env.INPUT_MODE || 'unreleased';
-        # const targetVersion = process.env.TARGET_VERSION || core.getInput('target_version') || process.env.INPUT_TARGET_VERSION || '';
-        # 
         # const { owner, repo } = context.repo;
+        # const workflowRun = context.payload.workflow_run;
+        # const headSha = workflowRun?.head_sha;
+        # const headBranch = workflowRun?.head_branch;
         # 
-        # // Collect commits in range
-        # let commitSHAs = [];
-        # try {
-          # const range = compareRange || 'HEAD';
-          # const raw = execSync(`git log --format=%H ${range}`, {
-            # encoding: 'utf8',
-            # stdio: ['pipe', 'pipe', 'pipe'],
-          # }).trim();
-          # commitSHAs = parseCommitShas(raw);
-          # core.info(`Found ${commitSHAs.length} commit(s) in range ${range}`);
-        # } catch (err) {
-          # core.warning(`Failed to list commits in range: ${err.message}`);
+        # if (!headSha) {
+          # core.setFailed('PR_CHANGELOG_GATING: No head_sha in workflow_run payload — cannot resolve PR');
+          # return;
         # }
         # 
-        # // Find PRs associated with these commits and dedupe merged PRs as we go.
-        # const mergedPullRequestsByNumber = new Map();
-        # 
-        # for (const sha of commitSHAs) {
-          # try {
-            # const { data: prs } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
-              # owner,
-              # repo,
-              # commit_sha: sha,
-            # });
-            # for (const pr of prs) {
-              # if (pr.state === 'closed' && pr.merged_at && !mergedPullRequestsByNumber.has(pr.number)) {
-                # mergedPullRequestsByNumber.set(pr.number, pr);
-              # }
-            # }
-          # } catch (err) {
-            # core.warning(`Failed to list PRs for commit ${sha}: ${err.message}`);
-          # }
+        # if (!headBranch) {
+          # core.setFailed('PR_CHANGELOG_GATING: Could not determine head branch from workflow_run event');
+          # return;
         # }
         # 
-        # const mergedPullRequests = Array.from(mergedPullRequestsByNumber.values());
-        # core.info(`Found ${mergedPullRequests.length} unique merged PR(s) in compare range`);
-        # 
-        # // Enrich each PR with file information
-        # const evidence = [];
-        # 
-        # for (const pr of mergedPullRequests) {
-          # const prNumber = pr.number;
-          # let files = [];
-          # try {
-            # files = await github.paginate(github.rest.pulls.listFiles, {
-              # owner,
-              # repo,
-              # pull_number: prNumber,
-              # per_page: 100,
-            # });
-          # } catch (err) {
-            # core.warning(`Failed to list files for PR #${prNumber}: ${err.message}`);
-          # }
-        # 
-          # evidence.push(buildPullRequestEvidence(pr, files));
+        # const headRepoFullName = workflowRun.head_repository?.full_name;
+        # const baseRepoFullName = `${context.repo.owner}/${context.repo.repo}`;
+        # if (headRepoFullName !== baseRepoFullName) {
+          # core.info(`Skipping: workflow_run is for a fork PR (${headRepoFullName})`);
+          # core.setOutput('is_pr_event', 'false');
+          # return;
         # }
         # 
-        # const manifest = buildEvidenceManifest({
-          # mode,
-          # targetVersion,
-          # previousTag,
-          # compareRange,
-          # evidence,
-          # generatedAt: new Date().toISOString(),
+        # core.info(`Resolving PR for head_sha=${headSha} head_branch=${headBranch}`);
+        # 
+        # // List open PRs from the triggering head branch
+        # const { data: matchingPRs } = await github.rest.pulls.list({
+          # owner,
+          # repo,
+          # state: 'open',
+          # head: `${owner}:${headBranch}`,
+          # per_page: 10,
         # });
         # 
-        # const artifactPlan = buildEvidenceArtifactPlan({ manifest });
-        # fs.mkdirSync(artifactPlan.directory, { recursive: true });
-        # fs.writeFileSync(artifactPlan.artifactPath, artifactPlan.formattedJson, 'utf8');
+        # const candidatePRs = matchingPRs.filter((pr) => pr.head.sha === headSha);
         # 
-        # core.setOutput('evidence_file_path', artifactPlan.artifactPath);
-        # const hasEvidence = evidence.length > 0;
-        # core.setOutput('has_evidence', hasEvidence ? 'true' : 'false');
-        # core.info(`Evidence manifest written to ${artifactPlan.artifactPath} (${artifactPlan.prCount} PRs)`);
-        # core.info(`Evidence manifest built: ${evidence.length} PRs (${manifest.user_facing_count} user-facing, ${manifest.internal_count} internal, ${manifest.uncertain_count} uncertain)`);
-  # - if: steps.gather_pr_evidence.outputs.has_evidence == 'true'
-    # name: Upload release evidence artifact
-    # uses: actions/upload-artifact@v4
+        # if (candidatePRs.length === 0) {
+          # core.setFailed(
+            # `PR_CHANGELOG_GATING: No open pull request found for head_sha=${headSha} head_branch=${headBranch}`
+          # );
+          # return;
+        # }
+        # 
+        # if (candidatePRs.length > 1) {
+          # const numbers = candidatePRs.map((pr) => `#${pr.number}`).join(', ');
+          # core.setFailed(
+            # `PR_CHANGELOG_GATING: Multiple open pull requests found for head_sha=${headSha}: ${numbers} — cannot resolve deterministically`
+          # );
+          # return;
+        # }
+        # 
+        # const pr = candidatePRs[0];
+        # core.info(`Resolved PR #${pr.number}: ${pr.title}`);
+        # 
+        # const labelNames = (pr.labels ?? []).map((l) => l.name);
+        # const hasNoChangelog = labelNames.includes('no-changelog');
+        # core.info(`PR labels: ${labelNames.join(', ') || '(none)'}`);
+        # core.info(`no-changelog label present: ${hasNoChangelog}`);
+        # 
+        # const prBody = pr.body ?? '';
+        # const prBodyPath = '/tmp/pr-body.txt';
+        # fs.mkdirSync('/tmp', { recursive: true });
+        # fs.writeFileSync(prBodyPath, prBody, 'utf8');
+        # core.info(`PR body written to ${prBodyPath} (${prBody.length} bytes)`);
+        # 
+        # core.setOutput('pr_number', String(pr.number));
+        # core.setOutput('pr_title', pr.title);
+        # core.setOutput('pr_body', prBody);
+        # core.setOutput('pr_body_path', prBodyPath);
+        # core.setOutput('pr_url', pr.html_url);
+        # core.setOutput('has_no_changelog_label', hasNoChangelog ? 'true' : 'false');
+  # - env:
+      # PR_BODY: ${{ steps.resolve_pr.outputs.pr_body }}
+      # PR_NUMBER: ${{ steps.resolve_pr.outputs.pr_number }}
+    # id: validate_changelog
+    # if: steps.check_pr_event.outputs.is_pr_event == 'true' && steps.resolve_pr.outputs.has_no_changelog_label != 'true'
+    # name: Validate or skip changelog section
+    # uses: actions/github-script@v8
     # with:
-      # if-no-files-found: error
-      # name: changelog-release-evidence
-      # path: ${{ steps.gather_pr_evidence.outputs.evidence_file_path }}
-  workflow_dispatch:
-    inputs:
-      aw_context:
-        default: ""
-        description: Agent caller context (used internally by Agentic Workflows).
-        required: false
-        type: string
+      # github-token: ${{ secrets.GITHUB_TOKEN }}
+      # script: |
+        # /**
+         # * Helpers to parse and validate the PR-body `## Changelog` contract.
+         # *
+         # * Contract:
+         # *   ## Changelog
+         # *   Customer impact: <none|fix|enhancement|breaking>
+         # *   Summary: <text>          (required when Customer impact is not "none")
+         # *
+         # *   ### Breaking changes
+         # *   <free-form markdown>     (optional subsection)
+         # */
+        # 
+        # const VALID_CUSTOMER_IMPACTS = new Set(['none', 'fix', 'enhancement', 'breaking']);
+        # 
+        # /**
+         # * Extract the raw text of the `## Changelog` section from a PR body.
+         # * Returns the content between `## Changelog` and the next `##`-level heading
+         # * (or the end of the string).
+         # *
+         # * @param {string} body
+         # * @returns {string|null}
+         # */
+        # function extractChangelogSection(body) {
+          # if (!body) return null;
+        # 
+          # const lines = body.split('\n');
+          # let inChangelog = false;
+          # /** @type {null | '`' | '~'} */
+          # let fenceType = null;
+          # const content = [];
+        # 
+          # for (const line of lines) {
+            # if (/^##\s+Changelog/.test(line)) {
+              # inChangelog = true;
+              # continue;
+            # }
+            # if (inChangelog) {
+              # if (fenceType === null && /^```/.test(line)) {
+                # fenceType = '`';
+              # } else if (fenceType === null && /^~~~/.test(line)) {
+                # fenceType = '~';
+              # } else if (fenceType === '`' && /^```/.test(line)) {
+                # fenceType = null;
+              # } else if (fenceType === '~' && /^~~~/.test(line)) {
+                # fenceType = null;
+              # }
+              # if (fenceType === null && /^##\s/.test(line)) {
+                # break;
+              # }
+              # content.push(line);
+            # }
+          # }
+        # 
+          # if (!inChangelog) return null;
+        # 
+          # return content.join('\n');
+        # }
+        # 
+        # /**
+         # * Extract the raw markdown content of the `### Breaking changes` subsection
+         # * from a PR body string. Returns everything from the heading line (exclusive)
+         # * up to the next `##` or `###` heading, or the end of the string.
+         # *
+         # * @param {string} body
+         # * @returns {string|null} Trimmed markdown content, or null if not present or empty.
+         # */
+        # function extractBreakingChanges(changelogSection) {
+          # if (!changelogSection) return null;
+        # 
+          # const lines = changelogSection.split('\n');
+          # let inBreaking = false;
+          # /** @type {null | '`' | '~'} */
+          # let fenceType = null;
+          # const content = [];
+        # 
+          # for (const line of lines) {
+            # if (/^###\s+Breaking changes/.test(line)) {
+              # inBreaking = true;
+              # continue;
+            # }
+            # if (inBreaking) {
+              # if (fenceType === null && /^```/.test(line)) {
+                # fenceType = '`';
+              # } else if (fenceType === null && /^~~~/.test(line)) {
+                # fenceType = '~';
+              # } else if (fenceType === '`' && /^```/.test(line)) {
+                # fenceType = null;
+              # } else if (fenceType === '~' && /^~~~/.test(line)) {
+                # fenceType = null;
+              # }
+              # if (fenceType === null && /^#{2,3}\s/.test(line)) {
+                # break;
+              # }
+              # content.push(line);
+            # }
+          # }
+        # 
+          # if (!inBreaking) return null;
+        # 
+          # const trimmed = content.join('\n').trimEnd();
+          # return trimmed.length > 0 ? trimmed : null;
+        # }
+        # 
+        # /**
+         # * Parse the `## Changelog` section from a PR body string.
+         # *
+         # * @param {string} body - Full PR body text.
+         # * @returns {{ customerImpact: string|null, summary: string|null, breakingChanges: string|null }|null}
+         # *   Returns null when no `## Changelog` section is found.
+         # */
+        # function parseChangelogSection(body) {
+          # const section = extractChangelogSection(body);
+          # if (section === null) return null;
+        # 
+          # // Parse `Customer impact: <value>`
+          # const customerImpactMatch = section.match(/^Customer impact:\s*(.+)$/m);
+          # const customerImpact = customerImpactMatch ? customerImpactMatch[1].trim() : null;
+        # 
+          # // Parse `Summary: <text>`
+          # const summaryMatch = section.match(/^Summary:\s*(.+)$/m);
+          # const summary = summaryMatch ? summaryMatch[1].trim() : null;
+        # 
+          # // Extract breaking changes from the changelog section only
+          # const breakingChanges = extractBreakingChanges(section);
+        # 
+          # return {
+            # customerImpact,
+            # summary: summary || null,
+            # breakingChanges,
+          # };
+        # }
+        # 
+        # /**
+         # * Validate a parsed changelog section.
+         # *
+         # * @param {{ customerImpact: string|null, summary: string|null, breakingChanges: string|null }|null} parsed
+         # * @returns {{ valid: boolean, errors: string[] }}
+         # */
+        # function validateChangelogSection(parsed) {
+          # const errors = [];
+        # 
+          # if (parsed === null) {
+            # errors.push('No ## Changelog section found in PR body');
+            # return { valid: false, errors };
+          # }
+        # 
+          # const { customerImpact, summary } = parsed;
+        # 
+          # // Validate Customer impact
+          # if (!customerImpact) {
+            # errors.push('Missing required field: Customer impact');
+          # } else if (!VALID_CUSTOMER_IMPACTS.has(customerImpact)) {
+            # errors.push(
+              # `Invalid Customer impact value: "${customerImpact}". Must be one of: ${[...VALID_CUSTOMER_IMPACTS].join(', ')}`
+            # );
+          # }
+        # 
+          # // Summary is required unless Customer impact is "none"
+          # if (customerImpact && customerImpact !== 'none' && VALID_CUSTOMER_IMPACTS.has(customerImpact)) {
+            # if (!summary) {
+              # errors.push('Missing required field: Summary (required when Customer impact is not "none")');
+            # }
+          # }
+        # 
+          # return {
+            # valid: errors.length === 0,
+            # errors,
+          # };
+        # }
+        # 
+        # /**
+         # * Internal variant that also detects whether a `### Breaking changes` heading
+         # * was present but had no content.
+         # *
+         # * @param {string} body
+         # * @returns {{ customerImpact: string|null, summary: string|null, breakingChanges: string|null, breakingChangesHeadingPresent: boolean }|null}
+         # */
+        # function parseChangelogSectionFull(body) {
+          # const section = extractChangelogSection(body);
+          # if (section === null) return null;
+        # 
+          # const customerImpactMatch = section.match(/^Customer impact:\s*(.+)$/m);
+          # const customerImpact = customerImpactMatch ? customerImpactMatch[1].trim() : null;
+        # 
+          # const summaryMatch = section.match(/^Summary:\s*(.+)$/m);
+          # const summary = summaryMatch ? summaryMatch[1].trim() : null;
+        # 
+          # // Detect whether the heading exists within the changelog section (not the full body)
+          # const lines = section.split('\n');
+          # const breakingChangesHeadingPresent = lines.some((line) => /^###\s+Breaking changes/.test(line));
+          # const breakingChanges = extractBreakingChanges(section);
+        # 
+          # return {
+            # customerImpact,
+            # summary: summary || null,
+            # breakingChanges,
+            # breakingChangesHeadingPresent,
+          # };
+        # }
+        # 
+        # /**
+         # * Validate a full parsed changelog section (including empty breaking-changes detection).
+         # *
+         # * @param {ReturnType<typeof parseChangelogSectionFull>|null} parsed
+         # * @returns {{ valid: boolean, errors: string[] }}
+         # */
+        # function validateChangelogSectionFull(parsed) {
+          # const base = validateChangelogSection(parsed);
+          # if (!parsed) return base;
+        # 
+          # const errors = [...base.errors];
+        # 
+          # if (parsed.breakingChangesHeadingPresent && parsed.breakingChanges === null) {
+            # errors.push('### Breaking changes section is present but contains no content');
+          # }
+        # 
+          # if (parsed.customerImpact === 'breaking' && !parsed.breakingChangesHeadingPresent) {
+            # errors.push('Customer impact: breaking requires a ### Breaking changes subsection');
+          # }
+        # 
+          # return { valid: errors.length === 0, errors };
+        # }
+        # 
+        # if (typeof module !== 'undefined') {
+          # module.exports = {
+            # VALID_CUSTOMER_IMPACTS,
+            # extractBreakingChanges,
+            # extractChangelogSection,
+            # parseChangelogSection,
+            # parseChangelogSectionFull,
+            # validateChangelogSection,
+            # validateChangelogSectionFull,
+          # };
+        # }
+        # 
+        # const fs = require('fs');
+        # 
+        # const prNumber = process.env.PR_NUMBER || '';
+        # const prBodyPath = '/tmp/pr-body.txt';
+        # let prBody;
+        # if (fs.existsSync(prBodyPath)) {
+          # prBody = fs.readFileSync(prBodyPath, 'utf8');
+          # core.info(`PR body read from ${prBodyPath} (${prBody.length} bytes)`);
+        # } else {
+          # prBody = process.env.PR_BODY || '';
+          # core.info(`PR body read from PR_BODY env var (${prBody.length} bytes)`);
+        # }
+        # 
+        # core.info(`Validating changelog section for PR #${prNumber}`);
+        # 
+        # const parsed = parseChangelogSectionFull(prBody);
+        # 
+        # if (parsed === null) {
+          # // No ## Changelog section found — agent will draft it
+          # core.info('No ## Changelog section found — agent will draft one');
+          # core.setOutput('changelog_present', 'false');
+          # core.setOutput('changelog_valid', 'false');
+        # } else {
+          # // Section exists — validate it
+          # const validation = validateChangelogSectionFull(parsed);
+        # 
+          # if (validation.valid) {
+            # core.info(`## Changelog section is valid (Customer impact: ${parsed.customerImpact})`);
+            # core.setOutput('changelog_present', 'true');
+            # core.setOutput('changelog_valid', 'true');
+          # } else {
+            # const errorList = validation.errors.map((e) => `  - ${e}`).join('\n');
+            # core.setOutput('changelog_valid', 'false');
+            # core.setFailed(
+              # `## Changelog section is malformed in PR #${prNumber}:\n${errorList}\n\nFix the ## Changelog section in the PR body and re-push to re-run this check.`
+            # );
+          # }
+        # }
+  workflow_run:
+    # zizmor: ignore[dangerous-triggers] - workflow_run trigger is secured with role and fork validation
+    types:
+    - completed
+    workflows:
+    - Build/Lint/Test
 
 permissions: {}
 
@@ -518,20 +439,23 @@ concurrency:
   group: "gh-aw-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref || github.run_id }}"
   cancel-in-progress: true
 
-run-name: "Changelog Generation"
+run-name: "PR Changelog Authoring"
 
 jobs:
   activation:
-    needs: pre_activation
+    needs:
+      - pre_activation
+      - pre_activation
+    # zizmor: ignore[dangerous-triggers] - workflow_run trigger is secured with role and fork validation
     if: >
-      needs.pre_activation.outputs.activated == 'true' && ((github.event_name != 'pull_request_target' || startsWith(github.head_ref, 'prep-release-')) &&
-      needs.pre_activation.outputs.has_evidence == 'true')
+      (needs.pre_activation.outputs.activated == 'true' && (needs.pre_activation.outputs.changelog_present == 'false')) &&
+      (github.event_name != 'workflow_run' || github.event.workflow_run.repository.id == github.repository_id &&
+      (!(github.event.workflow_run.repository.fork)))
     runs-on: ubuntu-slim
     permissions:
       actions: read
       contents: read
     outputs:
-      body: ${{ steps.sanitized.outputs.body }}
       comment_id: ""
       comment_repo: ""
       lockdown_check_failed: ${{ steps.generate_aw_info.outputs.lockdown_check_failed == 'true' }}
@@ -539,8 +463,6 @@ jobs:
       secret_verification_result: ${{ steps.validate-secret.outputs.verification_result }}
       setup-trace-id: ${{ steps.setup.outputs.trace-id }}
       stale_lock_file_failed: ${{ steps.check-lock-file.outputs.stale_lock_file_failed == 'true' }}
-      text: ${{ steps.sanitized.outputs.text }}
-      title: ${{ steps.sanitized.outputs.title }}
     steps:
       - name: Setup Scripts
         id: setup
@@ -558,11 +480,11 @@ jobs:
           GH_AW_INFO_VERSION: "2.1.98"
           GH_AW_INFO_AGENT_VERSION: "2.1.98"
           GH_AW_INFO_CLI_VERSION: "v0.68.3"
-          GH_AW_INFO_WORKFLOW_NAME: "Changelog Generation"
+          GH_AW_INFO_WORKFLOW_NAME: "PR Changelog Authoring"
           GH_AW_INFO_EXPERIMENTAL: "false"
           GH_AW_INFO_SUPPORTS_TOOLS_ALLOWLIST: "true"
           GH_AW_INFO_STAGED: "false"
-          GH_AW_INFO_ALLOWED_DOMAINS: '["defaults","node","go","elastic.litellm-prod.ai"]'
+          GH_AW_INFO_ALLOWED_DOMAINS: '["defaults","node","elastic.litellm-prod.ai"]'
           GH_AW_INFO_FIREWALL_ENABLED: "true"
           GH_AW_INFO_AWF_VERSION: "v0.25.20"
           GH_AW_INFO_AWMG_VERSION: ""
@@ -593,7 +515,7 @@ jobs:
         id: check-lock-file
         uses: actions/github-script@373c709c69115d41ff229c7e5df9f8788daa9553 # v9
         env:
-          GH_AW_WORKFLOW_FILE: "changelog-generation.lock.yml"
+          GH_AW_WORKFLOW_FILE: "pr-changelog-authoring.lock.yml"
           GH_AW_CONTEXT_WORKFLOW_REF: "${{ github.workflow_ref }}"
         with:
           script: |
@@ -611,15 +533,6 @@ jobs:
             setupGlobals(core, github, context, exec, io, getOctokit);
             const { main } = require('${{ runner.temp }}/gh-aw/actions/check_version_updates.cjs');
             await main();
-      - name: Compute current body text
-        id: sanitized
-        uses: actions/github-script@373c709c69115d41ff229c7e5df9f8788daa9553 # v9
-        with:
-          script: |
-            const { setupGlobals } = require('${{ runner.temp }}/gh-aw/actions/setup_globals.cjs');
-            setupGlobals(core, github, context, exec, io, getOctokit);
-            const { main } = require('${{ runner.temp }}/gh-aw/actions/compute_text.cjs');
-            await main();
       - name: Create prompt with built-in context
         env:
           GH_AW_PROMPT: /tmp/gh-aw/aw-prompts/prompt.txt
@@ -632,29 +545,24 @@ jobs:
           GH_AW_GITHUB_REPOSITORY: ${{ github.repository }}
           GH_AW_GITHUB_RUN_ID: ${{ github.run_id }}
           GH_AW_GITHUB_WORKSPACE: ${{ github.workspace }}
-          GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_COMPARE_RANGE: ${{ needs.pre_activation.outputs.compare_range }}
-          GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_MODE: ${{ needs.pre_activation.outputs.mode }}
-          GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_PREVIOUS_TAG: ${{ needs.pre_activation.outputs.previous_tag }}
-          GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_TARGET_BRANCH: ${{ needs.pre_activation.outputs.target_branch }}
-          GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_TARGET_VERSION: ${{ needs.pre_activation.outputs.target_version }}
+          GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_PR_BODY: ${{ needs.pre_activation.outputs.pr_body }}
+          GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_PR_NUMBER: ${{ needs.pre_activation.outputs.pr_number }}
+          GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_PR_TITLE: ${{ needs.pre_activation.outputs.pr_title }}
+          GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_PR_URL: ${{ needs.pre_activation.outputs.pr_url }}
         # poutine:ignore untrusted_checkout_exec
         run: |
           bash "${RUNNER_TEMP}/gh-aw/actions/create_prompt_first.sh"
           {
-          cat << 'GH_AW_PROMPT_aaa0475425831deb_EOF'
+          cat << 'GH_AW_PROMPT_66c99584373a0450_EOF'
           <system>
-          GH_AW_PROMPT_aaa0475425831deb_EOF
+          GH_AW_PROMPT_66c99584373a0450_EOF
           cat "${RUNNER_TEMP}/gh-aw/prompts/xpia.md"
           cat "${RUNNER_TEMP}/gh-aw/prompts/temp_folder_prompt.md"
           cat "${RUNNER_TEMP}/gh-aw/prompts/markdown.md"
           cat "${RUNNER_TEMP}/gh-aw/prompts/safe_outputs_prompt.md"
-          cat << 'GH_AW_PROMPT_aaa0475425831deb_EOF'
+          cat << 'GH_AW_PROMPT_66c99584373a0450_EOF'
           <safe-output-tools>
-          Tools: create_pull_request, update_pull_request, push_to_pull_request_branch, missing_tool, missing_data, noop
-          GH_AW_PROMPT_aaa0475425831deb_EOF
-          cat "${RUNNER_TEMP}/gh-aw/prompts/safe_outputs_create_pull_request.md"
-          cat "${RUNNER_TEMP}/gh-aw/prompts/safe_outputs_push_to_pr_branch.md"
-          cat << 'GH_AW_PROMPT_aaa0475425831deb_EOF'
+          Tools: update_pull_request, missing_tool, missing_data, noop
           </safe-output-tools>
           <github-context>
           The following GitHub context information is available for this workflow:
@@ -682,27 +590,23 @@ jobs:
           {{#if __GH_AW_GITHUB_RUN_ID__ }}
           - **workflow-run-id**: __GH_AW_GITHUB_RUN_ID__
           {{/if}}
-          - **checkouts**: The following repositories have been checked out and are available in the workspace:
-            - `$GITHUB_WORKSPACE` → `__GH_AW_GITHUB_REPOSITORY__` (cwd) [full history, all branches available as remote-tracking refs]
-            - **Note**: If a branch you need is not in the list above and is not listed as an additional fetched ref, it has NOT been checked out. For private repositories you cannot fetch it without proper authentication. If the branch is required and not available, exit with an error and ask the user to add it to the `fetch:` option of the `checkout:` configuration (e.g., `fetch: ["refs/pulls/open/*"]` for all open PR refs, or `fetch: ["main", "feature/my-branch"]` for specific branches).
           </github-context>
           
-          GH_AW_PROMPT_aaa0475425831deb_EOF
+          GH_AW_PROMPT_66c99584373a0450_EOF
           cat "${RUNNER_TEMP}/gh-aw/prompts/github_mcp_tools_with_safeoutputs_prompt.md"
-          cat << 'GH_AW_PROMPT_aaa0475425831deb_EOF'
+          cat << 'GH_AW_PROMPT_66c99584373a0450_EOF'
           </system>
-          {{#runtime-import .github/workflows/changelog-generation.md}}
-          GH_AW_PROMPT_aaa0475425831deb_EOF
+          {{#runtime-import .github/workflows/pr-changelog-authoring.md}}
+          GH_AW_PROMPT_66c99584373a0450_EOF
           } > "$GH_AW_PROMPT"
       - name: Interpolate variables and render templates
         uses: actions/github-script@373c709c69115d41ff229c7e5df9f8788daa9553 # v9
         env:
           GH_AW_PROMPT: /tmp/gh-aw/aw-prompts/prompt.txt
-          GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_COMPARE_RANGE: ${{ needs.pre_activation.outputs.compare_range }}
-          GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_MODE: ${{ needs.pre_activation.outputs.mode }}
-          GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_PREVIOUS_TAG: ${{ needs.pre_activation.outputs.previous_tag }}
-          GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_TARGET_BRANCH: ${{ needs.pre_activation.outputs.target_branch }}
-          GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_TARGET_VERSION: ${{ needs.pre_activation.outputs.target_version }}
+          GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_PR_BODY: ${{ needs.pre_activation.outputs.pr_body }}
+          GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_PR_NUMBER: ${{ needs.pre_activation.outputs.pr_number }}
+          GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_PR_TITLE: ${{ needs.pre_activation.outputs.pr_title }}
+          GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_PR_URL: ${{ needs.pre_activation.outputs.pr_url }}
         with:
           script: |
             const { setupGlobals } = require('${{ runner.temp }}/gh-aw/actions/setup_globals.cjs');
@@ -722,11 +626,10 @@ jobs:
           GH_AW_GITHUB_RUN_ID: ${{ github.run_id }}
           GH_AW_GITHUB_WORKSPACE: ${{ github.workspace }}
           GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_ACTIVATED: ${{ needs.pre_activation.outputs.activated }}
-          GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_COMPARE_RANGE: ${{ needs.pre_activation.outputs.compare_range }}
-          GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_MODE: ${{ needs.pre_activation.outputs.mode }}
-          GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_PREVIOUS_TAG: ${{ needs.pre_activation.outputs.previous_tag }}
-          GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_TARGET_BRANCH: ${{ needs.pre_activation.outputs.target_branch }}
-          GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_TARGET_VERSION: ${{ needs.pre_activation.outputs.target_version }}
+          GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_PR_BODY: ${{ needs.pre_activation.outputs.pr_body }}
+          GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_PR_NUMBER: ${{ needs.pre_activation.outputs.pr_number }}
+          GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_PR_TITLE: ${{ needs.pre_activation.outputs.pr_title }}
+          GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_PR_URL: ${{ needs.pre_activation.outputs.pr_url }}
         with:
           script: |
             const { setupGlobals } = require('${{ runner.temp }}/gh-aw/actions/setup_globals.cjs');
@@ -747,11 +650,10 @@ jobs:
                 GH_AW_GITHUB_RUN_ID: process.env.GH_AW_GITHUB_RUN_ID,
                 GH_AW_GITHUB_WORKSPACE: process.env.GH_AW_GITHUB_WORKSPACE,
                 GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_ACTIVATED: process.env.GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_ACTIVATED,
-                GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_COMPARE_RANGE: process.env.GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_COMPARE_RANGE,
-                GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_MODE: process.env.GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_MODE,
-                GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_PREVIOUS_TAG: process.env.GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_PREVIOUS_TAG,
-                GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_TARGET_BRANCH: process.env.GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_TARGET_BRANCH,
-                GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_TARGET_VERSION: process.env.GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_TARGET_VERSION
+                GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_PR_BODY: process.env.GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_PR_BODY,
+                GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_PR_NUMBER: process.env.GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_PR_NUMBER,
+                GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_PR_TITLE: process.env.GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_PR_TITLE,
+                GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_PR_URL: process.env.GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_PR_URL
               }
             });
       - name: Validate prompt placeholders
@@ -778,6 +680,7 @@ jobs:
 
   agent:
     needs: activation
+    if: needs.pre_activation.outputs.changelog_present == 'false'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -788,7 +691,7 @@ jobs:
       GH_AW_ASSETS_BRANCH: ""
       GH_AW_ASSETS_MAX_SIZE_KB: 0
       GH_AW_MCP_LOG_DIR: /tmp/gh-aw/mcp-logs/safeoutputs
-      GH_AW_WORKFLOW_ID_SANITIZED: changeloggeneration
+      GH_AW_WORKFLOW_ID_SANITIZED: prchangelogauthoring
     outputs:
       checkout_pr_success: ${{ steps.checkout-pr.outputs.checkout_pr_success || 'true' }}
       effective_tokens: ${{ steps.parse-mcp-gateway.outputs.effective_tokens }}
@@ -817,36 +720,16 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
-          fetch-depth: 0
       - name: Create gh-aw temp directory
         run: bash "${RUNNER_TEMP}/gh-aw/actions/create_gh_aw_tmp_dir.sh"
       - name: Configure gh CLI for GitHub Enterprise
         run: bash "${RUNNER_TEMP}/gh-aw/actions/configure_gh_for_ghe.sh"
         env:
           GH_TOKEN: ${{ github.token }}
-      - name: Download release evidence artifact
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          name: changelog-release-evidence
-          path: /tmp/gh-aw/agent
-      - name: Verify evidence manifest path
-        run: test -f /tmp/gh-aw/agent/evidence.json
-      - name: Setup Go
-        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
-        with:
-          cache: false
-          go-version-file: go.mod
-      - name: Export Go paths for AWF chroot mode
-        run: |
-          echo "GOROOT=$(go env GOROOT)" >> "$GITHUB_ENV"
-          echo "GOPATH=$(go env GOPATH)" >> "$GITHUB_ENV"
-          echo "GOMODCACHE=$(go env GOMODCACHE)" >> "$GITHUB_ENV"
       - name: Setup Node.js
         uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
           node-version-file: package.json
-      - name: Setup repository dependencies
-        run: make setup
 
       - name: Configure Git credentials
         env:
@@ -901,16 +784,14 @@ jobs:
           mkdir -p "${RUNNER_TEMP}/gh-aw/safeoutputs"
           mkdir -p /tmp/gh-aw/safeoutputs
           mkdir -p /tmp/gh-aw/mcp-logs/safeoutputs
-          cat > "${RUNNER_TEMP}/gh-aw/safeoutputs/config.json" << 'GH_AW_SAFE_OUTPUTS_CONFIG_6d82fb84ffe9483e_EOF'
-          {"create_pull_request":{"max":1,"max_patch_size":1024,"preserve_branch_name":true,"protected_files":["package.json","bun.lockb","bunfig.toml","deno.json","deno.jsonc","deno.lock","global.json","NuGet.Config","Directory.Packages.props","mix.exs","mix.lock","go.mod","go.sum","stack.yaml","stack.yaml.lock","pom.xml","build.gradle","build.gradle.kts","settings.gradle","settings.gradle.kts","gradle.properties","package-lock.json","yarn.lock","pnpm-lock.yaml","npm-shrinkwrap.json","requirements.txt","Pipfile","Pipfile.lock","pyproject.toml","setup.py","setup.cfg","Gemfile","Gemfile.lock","uv.lock","CODEOWNERS"],"protected_path_prefixes":[".github/",".agents/"]},"create_report_incomplete_issue":{},"missing_data":{},"missing_tool":{},"noop":{"max":1,"report-as-issue":"false"},"push_to_pull_request_branch":{"if_no_changes":"warn","max":1,"max_patch_size":1024,"protected_files":["package.json","bun.lockb","bunfig.toml","deno.json","deno.jsonc","deno.lock","global.json","NuGet.Config","Directory.Packages.props","mix.exs","mix.lock","go.mod","go.sum","stack.yaml","stack.yaml.lock","pom.xml","build.gradle","build.gradle.kts","settings.gradle","settings.gradle.kts","gradle.properties","package-lock.json","yarn.lock","pnpm-lock.yaml","npm-shrinkwrap.json","requirements.txt","Pipfile","Pipfile.lock","pyproject.toml","setup.py","setup.cfg","Gemfile","Gemfile.lock","uv.lock","CODEOWNERS"],"protected_path_prefixes":[".github/",".agents/"],"target":"triggering"},"report_incomplete":{},"update_pull_request":{"allow_body":true,"allow_title":true,"max":1}}
-          GH_AW_SAFE_OUTPUTS_CONFIG_6d82fb84ffe9483e_EOF
+          cat > "${RUNNER_TEMP}/gh-aw/safeoutputs/config.json" << 'GH_AW_SAFE_OUTPUTS_CONFIG_ba5f396867ecd9c8_EOF'
+          {"create_report_incomplete_issue":{},"missing_data":{},"missing_tool":{},"noop":{"max":1,"report-as-issue":"false"},"report_incomplete":{},"update_pull_request":{"allow_body":true,"allow_title":true,"max":1}}
+          GH_AW_SAFE_OUTPUTS_CONFIG_ba5f396867ecd9c8_EOF
       - name: Write Safe Outputs Tools
         env:
           GH_AW_TOOLS_META_JSON: |
             {
               "description_suffixes": {
-                "create_pull_request": " CONSTRAINTS: Maximum 1 pull request(s) can be created.",
-                "push_to_pull_request_branch": " CONSTRAINTS: Maximum 1 push(es) can be made.",
                 "update_pull_request": " CONSTRAINTS: Maximum 1 pull request(s) can be updated."
               },
               "repo_params": {},
@@ -918,42 +799,6 @@ jobs:
             }
           GH_AW_VALIDATION_JSON: |
             {
-              "create_pull_request": {
-                "defaultMax": 1,
-                "fields": {
-                  "body": {
-                    "required": true,
-                    "type": "string",
-                    "sanitize": true,
-                    "maxLength": 65000
-                  },
-                  "branch": {
-                    "required": true,
-                    "type": "string",
-                    "sanitize": true,
-                    "maxLength": 256
-                  },
-                  "draft": {
-                    "type": "boolean"
-                  },
-                  "labels": {
-                    "type": "array",
-                    "itemType": "string",
-                    "itemSanitize": true,
-                    "itemMaxLength": 128
-                  },
-                  "repo": {
-                    "type": "string",
-                    "maxLength": 256
-                  },
-                  "title": {
-                    "required": true,
-                    "type": "string",
-                    "sanitize": true,
-                    "maxLength": 128
-                  }
-                }
-              },
               "missing_data": {
                 "defaultMax": 20,
                 "fields": {
@@ -1008,26 +853,6 @@ jobs:
                     "type": "string",
                     "sanitize": true,
                     "maxLength": 65000
-                  }
-                }
-              },
-              "push_to_pull_request_branch": {
-                "defaultMax": 1,
-                "fields": {
-                  "branch": {
-                    "required": true,
-                    "type": "string",
-                    "sanitize": true,
-                    "maxLength": 256
-                  },
-                  "message": {
-                    "required": true,
-                    "type": "string",
-                    "sanitize": true,
-                    "maxLength": 65000
-                  },
-                  "pull_request_number": {
-                    "issueOrPRNumber": true
                   }
                 }
               },
@@ -1156,7 +981,7 @@ jobs:
           export GH_AW_ENGINE="claude"
           export MCP_GATEWAY_DOCKER_COMMAND='docker run -i --rm --network host -v /var/run/docker.sock:/var/run/docker.sock -e MCP_GATEWAY_PORT -e MCP_GATEWAY_DOMAIN -e MCP_GATEWAY_API_KEY -e MCP_GATEWAY_PAYLOAD_DIR -e MCP_GATEWAY_PAYLOAD_SIZE_THRESHOLD -e DEBUG -e MCP_GATEWAY_LOG_DIR -e GH_AW_MCP_LOG_DIR -e GH_AW_SAFE_OUTPUTS -e GH_AW_SAFE_OUTPUTS_CONFIG_PATH -e GH_AW_SAFE_OUTPUTS_TOOLS_PATH -e GH_AW_ASSETS_BRANCH -e GH_AW_ASSETS_MAX_SIZE_KB -e GH_AW_ASSETS_ALLOWED_EXTS -e DEFAULT_BRANCH -e GITHUB_MCP_SERVER_TOKEN -e GITHUB_MCP_GUARD_MIN_INTEGRITY -e GITHUB_MCP_GUARD_REPOS -e GITHUB_REPOSITORY -e GITHUB_SERVER_URL -e GITHUB_SHA -e GITHUB_WORKSPACE -e GITHUB_TOKEN -e GITHUB_RUN_ID -e GITHUB_RUN_NUMBER -e GITHUB_RUN_ATTEMPT -e GITHUB_JOB -e GITHUB_ACTION -e GITHUB_EVENT_NAME -e GITHUB_EVENT_PATH -e GITHUB_ACTOR -e GITHUB_ACTOR_ID -e GITHUB_TRIGGERING_ACTOR -e GITHUB_WORKFLOW -e GITHUB_WORKFLOW_REF -e GITHUB_WORKFLOW_SHA -e GITHUB_REF -e GITHUB_REF_NAME -e GITHUB_REF_TYPE -e GITHUB_HEAD_REF -e GITHUB_BASE_REF -e GH_AW_SAFE_OUTPUTS_PORT -e GH_AW_SAFE_OUTPUTS_API_KEY -v /tmp/gh-aw/mcp-payloads:/tmp/gh-aw/mcp-payloads:rw -v /opt:/opt:ro -v /tmp:/tmp:rw -v '"${GITHUB_WORKSPACE}"':'"${GITHUB_WORKSPACE}"':rw ghcr.io/github/gh-aw-mcpg:v0.2.19'
           
-          cat << GH_AW_MCP_CONFIG_9889713efb92ce6f_EOF | bash "${RUNNER_TEMP}/gh-aw/actions/start_mcp_gateway.sh"
+          cat << GH_AW_MCP_CONFIG_ebaa0fe7005a3070_EOF | bash "${RUNNER_TEMP}/gh-aw/actions/start_mcp_gateway.sh"
           {
             "mcpServers": {
               "github": {
@@ -1165,7 +990,7 @@ jobs:
                   "GITHUB_HOST": "$GITHUB_SERVER_URL",
                   "GITHUB_PERSONAL_ACCESS_TOKEN": "$GITHUB_MCP_SERVER_TOKEN",
                   "GITHUB_READ_ONLY": "1",
-                  "GITHUB_TOOLSETS": "repos,pull_requests"
+                  "GITHUB_TOOLSETS": "pull_requests"
                 },
                 "guard-policies": {
                   "allow-only": {
@@ -1196,7 +1021,7 @@ jobs:
               "payloadDir": "${MCP_GATEWAY_PAYLOAD_DIR}"
             }
           }
-          GH_AW_MCP_CONFIG_9889713efb92ce6f_EOF
+          GH_AW_MCP_CONFIG_ebaa0fe7005a3070_EOF
       - name: Download activation artifact
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
@@ -1281,7 +1106,7 @@ jobs:
           touch /tmp/gh-aw/agent-step-summary.md
           (umask 177 && touch /tmp/gh-aw/agent-stdio.log)
           # shellcheck disable=SC1003
-          sudo -E awf --container-workdir "${GITHUB_WORKSPACE}" --mount "${RUNNER_TEMP}/gh-aw:${RUNNER_TEMP}/gh-aw:ro" --mount "${RUNNER_TEMP}/gh-aw:/host${RUNNER_TEMP}/gh-aw:ro" --tty --env-all --exclude-env ANTHROPIC_API_KEY --exclude-env GITHUB_MCP_SERVER_TOKEN --exclude-env MCP_GATEWAY_API_KEY --allow-domains '*.githubusercontent.com,anthropic.com,api.anthropic.com,api.github.com,api.npms.io,api.snapcraft.io,archive.ubuntu.com,azure.archive.ubuntu.com,bun.sh,cdn.jsdelivr.net,cdn.playwright.dev,codeload.github.com,crl.geotrust.com,crl.globalsign.com,crl.identrust.com,crl.sectigo.com,crl.thawte.com,crl.usertrust.com,crl.verisign.com,crl3.digicert.com,crl4.digicert.com,crls.ssl.com,deb.nodesource.com,deno.land,elastic.litellm-prod.ai,esm.sh,files.pythonhosted.org,get.pnpm.io,ghcr.io,github-cloud.githubusercontent.com,github-cloud.s3.amazonaws.com,github.com,go.dev,golang.org,googleapis.deno.dev,googlechromelabs.github.io,goproxy.io,host.docker.internal,json-schema.org,json.schemastore.org,jsr.io,keyserver.ubuntu.com,lfs.github.com,nodejs.org,npm.pkg.github.com,npmjs.com,npmjs.org,objects.githubusercontent.com,ocsp.digicert.com,ocsp.geotrust.com,ocsp.globalsign.com,ocsp.identrust.com,ocsp.sectigo.com,ocsp.ssl.com,ocsp.thawte.com,ocsp.usertrust.com,ocsp.verisign.com,packagecloud.io,packages.cloud.google.com,packages.microsoft.com,pkg.go.dev,playwright.download.prss.microsoft.com,ppa.launchpad.net,proxy.golang.org,pypi.org,raw.githubusercontent.com,registry.bower.io,registry.npmjs.com,registry.npmjs.org,registry.yarnpkg.com,repo.yarnpkg.com,s.symcb.com,s.symcd.com,security.ubuntu.com,sentry.io,skimdb.npmjs.com,statsig.anthropic.com,storage.googleapis.com,sum.golang.org,telemetry.vercel.com,ts-crl.ws.symantec.com,ts-ocsp.ws.symantec.com,www.googleapis.com,www.npmjs.com,www.npmjs.org,yarnpkg.com' --log-level info --proxy-logs-dir /tmp/gh-aw/sandbox/firewall/logs --audit-dir /tmp/gh-aw/sandbox/firewall/audit --enable-host-access --image-tag 0.25.20 --skip-pull --enable-api-proxy --anthropic-api-target elastic.litellm-prod.ai \
+          sudo -E awf --container-workdir "${GITHUB_WORKSPACE}" --mount "${RUNNER_TEMP}/gh-aw:${RUNNER_TEMP}/gh-aw:ro" --mount "${RUNNER_TEMP}/gh-aw:/host${RUNNER_TEMP}/gh-aw:ro" --tty --env-all --exclude-env ANTHROPIC_API_KEY --exclude-env GITHUB_MCP_SERVER_TOKEN --exclude-env MCP_GATEWAY_API_KEY --allow-domains '*.githubusercontent.com,anthropic.com,api.anthropic.com,api.github.com,api.npms.io,api.snapcraft.io,archive.ubuntu.com,azure.archive.ubuntu.com,bun.sh,cdn.jsdelivr.net,cdn.playwright.dev,codeload.github.com,crl.geotrust.com,crl.globalsign.com,crl.identrust.com,crl.sectigo.com,crl.thawte.com,crl.usertrust.com,crl.verisign.com,crl3.digicert.com,crl4.digicert.com,crls.ssl.com,deb.nodesource.com,deno.land,elastic.litellm-prod.ai,esm.sh,files.pythonhosted.org,get.pnpm.io,ghcr.io,github-cloud.githubusercontent.com,github-cloud.s3.amazonaws.com,github.com,googleapis.deno.dev,googlechromelabs.github.io,host.docker.internal,json-schema.org,json.schemastore.org,jsr.io,keyserver.ubuntu.com,lfs.github.com,nodejs.org,npm.pkg.github.com,npmjs.com,npmjs.org,objects.githubusercontent.com,ocsp.digicert.com,ocsp.geotrust.com,ocsp.globalsign.com,ocsp.identrust.com,ocsp.sectigo.com,ocsp.ssl.com,ocsp.thawte.com,ocsp.usertrust.com,ocsp.verisign.com,packagecloud.io,packages.cloud.google.com,packages.microsoft.com,playwright.download.prss.microsoft.com,ppa.launchpad.net,pypi.org,raw.githubusercontent.com,registry.bower.io,registry.npmjs.com,registry.npmjs.org,registry.yarnpkg.com,repo.yarnpkg.com,s.symcb.com,s.symcd.com,security.ubuntu.com,sentry.io,skimdb.npmjs.com,statsig.anthropic.com,storage.googleapis.com,telemetry.vercel.com,ts-crl.ws.symantec.com,ts-ocsp.ws.symantec.com,www.googleapis.com,www.npmjs.com,www.npmjs.org,yarnpkg.com' --log-level info --proxy-logs-dir /tmp/gh-aw/sandbox/firewall/logs --audit-dir /tmp/gh-aw/sandbox/firewall/audit --enable-host-access --image-tag 0.25.20 --skip-pull --enable-api-proxy --anthropic-api-target elastic.litellm-prod.ai \
             -- /bin/bash -c 'export PATH="$(find /opt/hostedtoolcache -maxdepth 4 -type d -name bin 2>/dev/null | tr '\''\n'\'' '\'':'\'')$PATH"; [ -n "$GOROOT" ] && export PATH="$GOROOT/bin:$PATH" || true && claude --print --no-chrome --mcp-config /tmp/gh-aw/mcp-config/mcp-servers.json --allowed-tools Bash,BashOutput,Edit,ExitPlanMode,Glob,Grep,KillBash,LS,MultiEdit,NotebookEdit,NotebookRead,Read,Task,TodoWrite,Write,mcp__github__download_workflow_run_artifact,mcp__github__get_code_scanning_alert,mcp__github__get_commit,mcp__github__get_dependabot_alert,mcp__github__get_discussion,mcp__github__get_discussion_comments,mcp__github__get_file_contents,mcp__github__get_job_logs,mcp__github__get_label,mcp__github__get_latest_release,mcp__github__get_me,mcp__github__get_notification_details,mcp__github__get_pull_request,mcp__github__get_pull_request_comments,mcp__github__get_pull_request_diff,mcp__github__get_pull_request_files,mcp__github__get_pull_request_review_comments,mcp__github__get_pull_request_reviews,mcp__github__get_pull_request_status,mcp__github__get_release_by_tag,mcp__github__get_secret_scanning_alert,mcp__github__get_tag,mcp__github__get_workflow_run,mcp__github__get_workflow_run_logs,mcp__github__get_workflow_run_usage,mcp__github__issue_read,mcp__github__list_branches,mcp__github__list_code_scanning_alerts,mcp__github__list_commits,mcp__github__list_dependabot_alerts,mcp__github__list_discussion_categories,mcp__github__list_discussions,mcp__github__list_issue_types,mcp__github__list_issues,mcp__github__list_label,mcp__github__list_notifications,mcp__github__list_pull_requests,mcp__github__list_releases,mcp__github__list_secret_scanning_alerts,mcp__github__list_starred_repositories,mcp__github__list_tags,mcp__github__list_workflow_jobs,mcp__github__list_workflow_run_artifacts,mcp__github__list_workflow_runs,mcp__github__list_workflows,mcp__github__pull_request_read,mcp__github__search_code,mcp__github__search_issues,mcp__github__search_orgs,mcp__github__search_pull_requests,mcp__github__search_repositories,mcp__github__search_users --debug-file /tmp/gh-aw/agent-stdio.log --verbose --permission-mode bypassPermissions --output-format stream-json "$(cat /tmp/gh-aw/aw-prompts/prompt.txt)"' 2>&1 | tee -a /tmp/gh-aw/agent-stdio.log
         env:
           ANTHROPIC_API_KEY: ${{ secrets.CLAUDE_LITELLM_PROXY_API_KEY }}
@@ -1359,7 +1184,7 @@ jobs:
         uses: actions/github-script@373c709c69115d41ff229c7e5df9f8788daa9553 # v9
         env:
           GH_AW_SAFE_OUTPUTS: ${{ steps.set-runtime-paths.outputs.GH_AW_SAFE_OUTPUTS }}
-          GH_AW_ALLOWED_DOMAINS: "*.githubusercontent.com,anthropic.com,api.anthropic.com,api.github.com,api.npms.io,api.snapcraft.io,archive.ubuntu.com,azure.archive.ubuntu.com,bun.sh,cdn.jsdelivr.net,cdn.playwright.dev,codeload.github.com,crl.geotrust.com,crl.globalsign.com,crl.identrust.com,crl.sectigo.com,crl.thawte.com,crl.usertrust.com,crl.verisign.com,crl3.digicert.com,crl4.digicert.com,crls.ssl.com,deb.nodesource.com,deno.land,elastic.litellm-prod.ai,esm.sh,files.pythonhosted.org,get.pnpm.io,ghcr.io,github-cloud.githubusercontent.com,github-cloud.s3.amazonaws.com,github.com,go.dev,golang.org,googleapis.deno.dev,googlechromelabs.github.io,goproxy.io,host.docker.internal,json-schema.org,json.schemastore.org,jsr.io,keyserver.ubuntu.com,lfs.github.com,nodejs.org,npm.pkg.github.com,npmjs.com,npmjs.org,objects.githubusercontent.com,ocsp.digicert.com,ocsp.geotrust.com,ocsp.globalsign.com,ocsp.identrust.com,ocsp.sectigo.com,ocsp.ssl.com,ocsp.thawte.com,ocsp.usertrust.com,ocsp.verisign.com,packagecloud.io,packages.cloud.google.com,packages.microsoft.com,pkg.go.dev,playwright.download.prss.microsoft.com,ppa.launchpad.net,proxy.golang.org,pypi.org,raw.githubusercontent.com,registry.bower.io,registry.npmjs.com,registry.npmjs.org,registry.yarnpkg.com,repo.yarnpkg.com,s.symcb.com,s.symcd.com,security.ubuntu.com,sentry.io,skimdb.npmjs.com,statsig.anthropic.com,storage.googleapis.com,sum.golang.org,telemetry.vercel.com,ts-crl.ws.symantec.com,ts-ocsp.ws.symantec.com,www.googleapis.com,www.npmjs.com,www.npmjs.org,yarnpkg.com"
+          GH_AW_ALLOWED_DOMAINS: "*.githubusercontent.com,anthropic.com,api.anthropic.com,api.github.com,api.npms.io,api.snapcraft.io,archive.ubuntu.com,azure.archive.ubuntu.com,bun.sh,cdn.jsdelivr.net,cdn.playwright.dev,codeload.github.com,crl.geotrust.com,crl.globalsign.com,crl.identrust.com,crl.sectigo.com,crl.thawte.com,crl.usertrust.com,crl.verisign.com,crl3.digicert.com,crl4.digicert.com,crls.ssl.com,deb.nodesource.com,deno.land,elastic.litellm-prod.ai,esm.sh,files.pythonhosted.org,get.pnpm.io,ghcr.io,github-cloud.githubusercontent.com,github-cloud.s3.amazonaws.com,github.com,googleapis.deno.dev,googlechromelabs.github.io,host.docker.internal,json-schema.org,json.schemastore.org,jsr.io,keyserver.ubuntu.com,lfs.github.com,nodejs.org,npm.pkg.github.com,npmjs.com,npmjs.org,objects.githubusercontent.com,ocsp.digicert.com,ocsp.geotrust.com,ocsp.globalsign.com,ocsp.identrust.com,ocsp.sectigo.com,ocsp.ssl.com,ocsp.thawte.com,ocsp.usertrust.com,ocsp.verisign.com,packagecloud.io,packages.cloud.google.com,packages.microsoft.com,playwright.download.prss.microsoft.com,ppa.launchpad.net,pypi.org,raw.githubusercontent.com,registry.bower.io,registry.npmjs.com,registry.npmjs.org,registry.yarnpkg.com,repo.yarnpkg.com,s.symcb.com,s.symcd.com,security.ubuntu.com,sentry.io,skimdb.npmjs.com,statsig.anthropic.com,storage.googleapis.com,telemetry.vercel.com,ts-crl.ws.symantec.com,ts-ocsp.ws.symantec.com,www.googleapis.com,www.npmjs.com,www.npmjs.org,yarnpkg.com"
           GITHUB_SERVER_URL: ${{ github.server_url }}
           GITHUB_API_URL: ${{ github.api_url }}
         with:
@@ -1452,11 +1277,10 @@ jobs:
       needs.activation.outputs.stale_lock_file_failed == 'true')
     runs-on: ubuntu-slim
     permissions:
-      contents: write
-      issues: write
+      contents: read
       pull-requests: write
     concurrency:
-      group: "gh-aw-conclusion-changelog-generation"
+      group: "gh-aw-conclusion-pr-changelog-authoring"
       cancel-in-progress: false
     outputs:
       incomplete_count: ${{ steps.report_incomplete.outputs.incomplete_count }}
@@ -1491,7 +1315,7 @@ jobs:
         env:
           GH_AW_AGENT_OUTPUT: ${{ steps.setup-agent-output-env.outputs.GH_AW_AGENT_OUTPUT }}
           GH_AW_NOOP_MAX: "1"
-          GH_AW_WORKFLOW_NAME: "Changelog Generation"
+          GH_AW_WORKFLOW_NAME: "PR Changelog Authoring"
           GH_AW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           GH_AW_AGENT_CONCLUSION: ${{ needs.agent.result }}
           GH_AW_NOOP_REPORT_AS_ISSUE: "false"
@@ -1507,7 +1331,7 @@ jobs:
         uses: actions/github-script@373c709c69115d41ff229c7e5df9f8788daa9553 # v9
         env:
           GH_AW_AGENT_OUTPUT: ${{ steps.setup-agent-output-env.outputs.GH_AW_AGENT_OUTPUT }}
-          GH_AW_WORKFLOW_NAME: "Changelog Generation"
+          GH_AW_WORKFLOW_NAME: "PR Changelog Authoring"
           GH_AW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           GH_AW_DETECTION_CONCLUSION: ${{ needs.detection.outputs.detection_conclusion }}
           GH_AW_DETECTION_REASON: ${{ needs.detection.outputs.detection_reason }}
@@ -1524,7 +1348,7 @@ jobs:
         env:
           GH_AW_AGENT_OUTPUT: ${{ steps.setup-agent-output-env.outputs.GH_AW_AGENT_OUTPUT }}
           GH_AW_MISSING_TOOL_CREATE_ISSUE: "true"
-          GH_AW_WORKFLOW_NAME: "Changelog Generation"
+          GH_AW_WORKFLOW_NAME: "PR Changelog Authoring"
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
@@ -1538,7 +1362,7 @@ jobs:
         env:
           GH_AW_AGENT_OUTPUT: ${{ steps.setup-agent-output-env.outputs.GH_AW_AGENT_OUTPUT }}
           GH_AW_REPORT_INCOMPLETE_CREATE_ISSUE: "true"
-          GH_AW_WORKFLOW_NAME: "Changelog Generation"
+          GH_AW_WORKFLOW_NAME: "PR Changelog Authoring"
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
@@ -1552,15 +1376,13 @@ jobs:
         uses: actions/github-script@373c709c69115d41ff229c7e5df9f8788daa9553 # v9
         env:
           GH_AW_AGENT_OUTPUT: ${{ steps.setup-agent-output-env.outputs.GH_AW_AGENT_OUTPUT }}
-          GH_AW_WORKFLOW_NAME: "Changelog Generation"
+          GH_AW_WORKFLOW_NAME: "PR Changelog Authoring"
           GH_AW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           GH_AW_AGENT_CONCLUSION: ${{ needs.agent.result }}
-          GH_AW_WORKFLOW_ID: "changelog-generation"
+          GH_AW_WORKFLOW_ID: "pr-changelog-authoring"
           GH_AW_ENGINE_ID: "claude"
           GH_AW_SECRET_VERIFICATION_RESULT: ${{ needs.activation.outputs.secret_verification_result }}
           GH_AW_CHECKOUT_PR_SUCCESS: ${{ needs.agent.outputs.checkout_pr_success }}
-          GH_AW_CODE_PUSH_FAILURE_ERRORS: ${{ needs.safe_outputs.outputs.code_push_failure_errors }}
-          GH_AW_CODE_PUSH_FAILURE_COUNT: ${{ needs.safe_outputs.outputs.code_push_failure_count }}
           GH_AW_LOCKDOWN_CHECK_FAILED: ${{ needs.activation.outputs.lockdown_check_failed }}
           GH_AW_STALE_LOCK_FILE_FAILED: ${{ needs.activation.outputs.stale_lock_file_failed }}
           GH_AW_GROUP_REPORTS: "false"
@@ -1659,8 +1481,8 @@ jobs:
         if: always() && steps.detection_guard.outputs.run_detection == 'true'
         uses: actions/github-script@373c709c69115d41ff229c7e5df9f8788daa9553 # v9
         env:
-          WORKFLOW_NAME: "Changelog Generation"
-          WORKFLOW_DESCRIPTION: "Generates or updates CHANGELOG.md from merged pull requests. On schedule or workflow_dispatch, rewrites the Unreleased section. On prep-release-* pull requests, rewrites the concrete release section. Uses a deterministic pre-activation phase to resolve the previous release tag, compare range, merged PR set, and target section mode, then an agent phase to generate changelog content strictly from PR-level summaries with full provenance."
+          WORKFLOW_NAME: "PR Changelog Authoring"
+          WORKFLOW_DESCRIPTION: "Ensures each pull request either contains a valid ## Changelog section in its body or explicitly opts out with the no-changelog label. Triggered after Build/Lint/Test completes. Deterministic pre-activation steps resolve the PR, check the no-changelog label, and validate any existing changelog section. The agent only drafts a missing section from PR title and description."
           HAS_PATCH: ${{ needs.agent.outputs.has_patch }}
         with:
           script: |
@@ -1751,16 +1573,19 @@ jobs:
     runs-on: ubuntu-slim
     outputs:
       activated: ${{ steps.check_membership.outputs.is_team_member == 'true' }}
-      compare_range: ${{ steps.resolve_release_context.outputs.compare_range }}
-      gather_pr_evidence_result: ${{ steps.gather_pr_evidence.outcome }}
-      has_evidence: ${{ steps.gather_pr_evidence.outputs.has_evidence }}
+      changelog_present: ${{ steps.validate_changelog.outputs.changelog_present }}
+      changelog_valid: ${{ steps.validate_changelog.outputs.changelog_valid }}
+      check_pr_event_result: ${{ steps.check_pr_event.outcome }}
+      has_no_changelog_label: ${{ steps.resolve_pr.outputs.has_no_changelog_label }}
+      is_pr_event: ${{ steps.check_pr_event.outputs.is_pr_event }}
       matched_command: ''
-      mode: ${{ steps.resolve_release_context.outputs.mode }}
-      previous_tag: ${{ steps.resolve_release_context.outputs.previous_tag }}
-      resolve_release_context_result: ${{ steps.resolve_release_context.outcome }}
+      pr_body: ${{ steps.resolve_pr.outputs.pr_body }}
+      pr_number: ${{ steps.resolve_pr.outputs.pr_number }}
+      pr_title: ${{ steps.resolve_pr.outputs.pr_title }}
+      pr_url: ${{ steps.resolve_pr.outputs.pr_url }}
+      resolve_pr_result: ${{ steps.resolve_pr.outcome }}
       setup-trace-id: ${{ steps.setup.outputs.trace-id }}
-      target_branch: ${{ steps.resolve_release_context.outputs.target_branch }}
-      target_version: ${{ steps.resolve_release_context.outputs.target_version }}
+      validate_changelog_result: ${{ steps.validate_changelog.outcome }}
     steps:
       - name: Setup Scripts
         id: setup
@@ -1780,444 +1605,381 @@ jobs:
             setupGlobals(core, github, context, exec, io, getOctokit);
             const { main } = require('${{ runner.temp }}/gh-aw/actions/check_membership.cjs');
             await main();
-      - name: Checkout repository
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-        with:
-          fetch-depth: 0
-          fetch-tags: true
-      - name: Resolve release context
-        id: resolve_release_context
+      - name: Check for pull-request event
+        id: check_pr_event
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const { execSync } = require('child_process');
-            const RELEASE_BRANCH_PATTERN = /^prep-release-(.+)$/;
-            const SEMVER_TAG_PATTERN = /^v\d+\.\d+\.\d+$/;
-
-            function resolveReleaseMode({ eventName, headBranch = '' }) {
-              let mode = 'unreleased';
-              let targetVersion = '';
-              let targetBranch = 'generated-changelog';
-
-              if (eventName === 'pull_request' || eventName === 'pull_request_target') {
-                const match = headBranch.match(RELEASE_BRANCH_PATTERN);
-                if (match) {
-                  mode = 'release';
-                  targetVersion = match[1];
-                  targetBranch = headBranch;
-                }
-              }
-
-              return { mode, targetVersion, targetBranch };
+            const eventName = context.payload.workflow_run?.event;
+            const isPR = eventName === 'pull_request';
+            core.info(`Triggering workflow_run event: ${eventName}`);
+            core.setOutput('is_pr_event', isPR ? 'true' : 'false');
+            if (!isPR) {
+              core.info(`Skipping: workflow_run was triggered by event '${eventName}', not 'pull_request'`);
             }
-
-            function parseSemverTags(tagsRaw = '') {
-              return tagsRaw
-                .split('\n')
-                .map((tag) => tag.trim())
-                .filter((tag) => SEMVER_TAG_PATTERN.test(tag));
-            }
-
-            function selectPreviousTag({ tags = [], mode = 'unreleased', targetVersion = '' }) {
-              const excludedTag = mode === 'release' && targetVersion ? `v${targetVersion}` : '';
-              const candidates = excludedTag ? tags.filter((tag) => tag !== excludedTag) : tags;
-
-              return {
-                previousTag: candidates[0] ?? '',
-                excludedTag,
-                excludedCurrentTag: Boolean(excludedTag) && candidates.length < tags.length,
-              };
-            }
-
-            function buildCompareRange(previousTag) {
-              return previousTag ? `${previousTag}..HEAD` : 'HEAD';
-            }
-
-            function buildReleaseContext({ eventName, headBranch = '', tags = [] }) {
-              const modeResult = resolveReleaseMode({ eventName, headBranch });
-              const previousTagResult = selectPreviousTag({
-                tags,
-                mode: modeResult.mode,
-                targetVersion: modeResult.targetVersion,
-              });
-
-              return {
-                ...modeResult,
-                ...previousTagResult,
-                compareRange: buildCompareRange(previousTagResult.previousTag),
-              };
-            }
-
-            if (typeof module !== 'undefined') {
-              module.exports = {
-                RELEASE_BRANCH_PATTERN,
-                SEMVER_TAG_PATTERN,
-                buildCompareRange,
-                buildReleaseContext,
-                parseSemverTags,
-                resolveReleaseMode,
-                selectPreviousTag,
-              };
-            }
-
-            // Determine mode from event
-            const eventName = context.eventName;
-            const headBranch =
-              context.payload.pull_request?.head?.ref ??
-              context.payload.ref?.replace('refs/heads/', '') ??
-              process.env.GITHUB_HEAD_REF ??
-              process.env.GITHUB_REF_NAME ??
-              '';
-
-            let tags = [];
-            try {
-              // List all tags matching vX.Y.Z semver pattern, sort by version, pick the latest
-              const tagsRaw = execSync(
-                'git tag --list "v[0-9]*.[0-9]*.[0-9]*" --sort=-version:refname',
-                { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }
-              ).trim();
-
-              tags = parseSemverTags(tagsRaw);
-            } catch (err) {
-              core.warning(`Failed to list git tags: ${err.message}`);
-            }
-
-            const releaseContext = buildReleaseContext({ eventName, headBranch, tags });
-
-            if (releaseContext.mode === 'release') {
-              core.info(`Release mode: branch=${headBranch}, version=${releaseContext.targetVersion}`);
-            }
-            if (releaseContext.excludedCurrentTag) {
-              core.info(
-                `Excluded current release tag ${releaseContext.excludedTag} from previous tag candidates`
-              );
-            }
-            if (releaseContext.previousTag) {
-              core.info(`Resolved previous tag: ${releaseContext.previousTag}`);
-            } else if (tags.length === 0) {
-              core.warning('No semver release tags found; compare range will cover full history');
-            }
-
-            core.setOutput('mode', releaseContext.mode);
-            core.setOutput('target_version', releaseContext.targetVersion);
-            core.setOutput('previous_tag', releaseContext.previousTag);
-            core.setOutput('compare_range', releaseContext.compareRange);
-            core.setOutput('target_branch', releaseContext.targetBranch);
-
-            core.info(`Mode: ${releaseContext.mode}`);
-            core.info(`Compare range: ${releaseContext.compareRange}`);
-            core.info(`Target branch: ${releaseContext.targetBranch}`);
-      - name: Gather PR evidence
-        id: gather_pr_evidence
+      - name: Resolve pull request
+        id: resolve_pr
+        if: steps.check_pr_event.outputs.is_pr_event == 'true'
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
-        env:
-          COMPARE_RANGE: ${{ steps.resolve_release_context.outputs.compare_range }}
-          MODE: ${{ steps.resolve_release_context.outputs.mode }}
-          PREVIOUS_TAG: ${{ steps.resolve_release_context.outputs.previous_tag }}
-          TARGET_VERSION: ${{ steps.resolve_release_context.outputs.target_version }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
-            const { execSync } = require('child_process');
-            const USER_FACING_LABELS = new Set([
-              'enhancement',
-              'bug',
-              'feature',
-              'breaking-change',
-              'deprecation',
-              'new-resource',
-              'new-data-source',
-            ]);
-
-            const INTERNAL_LABELS = new Set([
-              'dependencies',
-              'chore',
-              'internal',
-              'documentation',
-              'ci',
-              'test',
-              'openspec',
-            ]);
-
-            const PROVIDER_PATH_PREFIXES = ['internal/', 'pkg/', 'libs/', 'provider/', 'go.mod', 'go.sum'];
-
-            function getLabelNames(pr) {
-              return (pr.labels ?? []).map((label) => label.name);
-            }
-
-            function classifyPullRequestForChangelog(pr, files = []) {
-              const labels = getLabelNames(pr);
-              const hasUserFacingLabel = labels.some((label) => USER_FACING_LABELS.has(label));
-              const hasInternalLabel = labels.some((label) => INTERNAL_LABELS.has(label));
-              const isAutomated =
-                pr.user?.login === 'dependabot[bot]' ||
-                pr.user?.login === 'dependabot' ||
-                pr.user?.login === 'github-actions[bot]';
-
-              const touchesProviderCode = files.some((file) =>
-                PROVIDER_PATH_PREFIXES.some((prefix) => file.filename.startsWith(prefix))
-              );
-              const openspecOnly = files.length > 0 && files.every((file) => file.filename.startsWith('openspec/'));
-
-              let classification;
-              let inclusionRationale;
-              let exclusionRationale;
-
-              if (isAutomated) {
-                classification = 'internal';
-                exclusionRationale = `Automated PR by ${pr.user?.login}`;
-              } else if (openspecOnly) {
-                classification = 'internal';
-                exclusionRationale = 'Touches only openspec/ files — no provider code changes';
-              } else if (hasUserFacingLabel) {
-                classification = 'user-facing';
-                inclusionRationale = `Has user-facing label(s): ${labels
-                  .filter((label) => USER_FACING_LABELS.has(label))
-                  .join(', ')}`;
-              } else if (hasInternalLabel && !touchesProviderCode) {
-                classification = 'internal';
-                exclusionRationale = `Has internal label(s): ${labels
-                  .filter((label) => INTERNAL_LABELS.has(label))
-                  .join(', ')} and does not touch provider code`;
-              } else if (touchesProviderCode) {
-                classification = 'user-facing';
-                inclusionRationale = 'Touches provider implementation paths — presumed user-facing';
-              } else {
-                classification = 'uncertain';
-                inclusionRationale = 'Classification uncertain — agent to decide';
-              }
-
-              return {
-                classification,
-                inclusionRationale: inclusionRationale ?? null,
-                exclusionRationale: exclusionRationale ?? null,
-              };
-            }
-
-            function parseCommitShas(raw = '') {
-              return raw
-                .split('\n')
-                .map((sha) => sha.trim())
-                .filter(Boolean);
-            }
-
-            function selectMergedPullRequests(prs = []) {
-              const seen = new Set();
-              const merged = [];
-
-              for (const pr of prs) {
-                if (pr.state === 'closed' && pr.merged_at && !seen.has(pr.number)) {
-                  seen.add(pr.number);
-                  merged.push(pr);
-                }
-              }
-
-              return merged;
-            }
-
-            function buildPullRequestEvidence(pr, files = []) {
-              const { classification, inclusionRationale, exclusionRationale } =
-                classifyPullRequestForChangelog(pr, files);
-
-              return {
-                number: pr.number,
-                title: pr.title,
-                url: pr.html_url,
-                merge_commit_sha: pr.merge_commit_sha,
-                author: pr.user?.login ?? 'unknown',
-                labels: getLabelNames(pr),
-                touched_files: files.map((file) => file.filename),
-                classification,
-                inclusion_rationale: inclusionRationale,
-                exclusion_rationale: exclusionRationale,
-              };
-            }
-
-            function buildTargetSection({ mode = 'unreleased', targetVersion = '', date = new Date().toISOString() }) {
-              if (mode === 'release' && targetVersion) {
-                return `## [${targetVersion}] - ${String(date).split('T')[0]}`;
-              }
-
-              return '## [Unreleased]';
-            }
-
-            function countByClassification(evidence = []) {
-              return {
-                user_facing_count: evidence.filter((item) => item.classification === 'user-facing').length,
-                internal_count: evidence.filter((item) => item.classification === 'internal').length,
-                uncertain_count: evidence.filter((item) => item.classification === 'uncertain').length,
-              };
-            }
-
-            function buildEvidenceManifest({
-              mode = 'unreleased',
-              targetVersion = '',
-              previousTag = '',
-              compareRange = 'HEAD',
-              evidence = [],
-              generatedAt = new Date().toISOString(),
-            }) {
-              const counts = countByClassification(evidence);
-
-              return {
-                generated_at: generatedAt,
-                mode,
-                target_section: buildTargetSection({ mode, targetVersion, date: generatedAt }),
-                target_section_mode: mode,
-                target_version: targetVersion,
-                previous_tag: previousTag,
-                compare_range: compareRange,
-                pr_count: evidence.length,
-                ...counts,
-                pull_requests: evidence,
-              };
-            }
-
-            if (typeof module !== 'undefined') {
-              module.exports = {
-                INTERNAL_LABELS,
-                PROVIDER_PATH_PREFIXES,
-                USER_FACING_LABELS,
-                buildEvidenceManifest,
-                buildPullRequestEvidence,
-                buildTargetSection,
-                classifyPullRequestForChangelog,
-                countByClassification,
-                parseCommitShas,
-                selectMergedPullRequests,
-              };
-            }
-
-            const path = require('path');
-
-            const DEFAULT_EVIDENCE_ARTIFACT_NAME = 'changelog-release-evidence';
-            const DEFAULT_EVIDENCE_ARTIFACT_PATH = '/tmp/gh-aw/pre-activation/evidence.json';
-
-            function buildEvidenceArtifactPlan({
-              manifest,
-              artifactName = DEFAULT_EVIDENCE_ARTIFACT_NAME,
-              artifactPath = DEFAULT_EVIDENCE_ARTIFACT_PATH,
-            }) {
-              if (!manifest || typeof manifest !== 'object' || Array.isArray(manifest)) {
-                throw new Error('manifest must be a non-null object');
-              }
-
-              if (!artifactName) {
-                throw new Error('artifactName must be provided');
-              }
-
-              if (!artifactPath) {
-                throw new Error('artifactPath must be provided');
-              }
-
-              return {
-                artifactName,
-                artifactPath,
-                directory: path.dirname(artifactPath),
-                formattedJson: JSON.stringify(manifest, null, 2),
-                prCount: manifest.pr_count ?? '?',
-              };
-            }
-
-            if (typeof module !== 'undefined') {
-              module.exports = {
-                DEFAULT_EVIDENCE_ARTIFACT_NAME,
-                DEFAULT_EVIDENCE_ARTIFACT_PATH,
-                buildEvidenceArtifactPlan,
-              };
-            }
-
-            const previousTag = process.env.PREVIOUS_TAG || core.getInput('previous_tag') || process.env.INPUT_PREVIOUS_TAG || '';
-            const compareRange = process.env.COMPARE_RANGE || core.getInput('compare_range') || process.env.INPUT_COMPARE_RANGE || 'HEAD';
-            const mode = process.env.MODE || core.getInput('mode') || process.env.INPUT_MODE || 'unreleased';
-            const targetVersion = process.env.TARGET_VERSION || core.getInput('target_version') || process.env.INPUT_TARGET_VERSION || '';
-
             const { owner, repo } = context.repo;
+            const workflowRun = context.payload.workflow_run;
+            const headSha = workflowRun?.head_sha;
+            const headBranch = workflowRun?.head_branch;
 
-            // Collect commits in range
-            let commitSHAs = [];
-            try {
-              const range = compareRange || 'HEAD';
-              const raw = execSync(`git log --format=%H ${range}`, {
-                encoding: 'utf8',
-                stdio: ['pipe', 'pipe', 'pipe'],
-              }).trim();
-              commitSHAs = parseCommitShas(raw);
-              core.info(`Found ${commitSHAs.length} commit(s) in range ${range}`);
-            } catch (err) {
-              core.warning(`Failed to list commits in range: ${err.message}`);
+            if (!headSha) {
+              core.setFailed('PR_CHANGELOG_GATING: No head_sha in workflow_run payload — cannot resolve PR');
+              return;
             }
 
-            // Find PRs associated with these commits and dedupe merged PRs as we go.
-            const mergedPullRequestsByNumber = new Map();
-
-            for (const sha of commitSHAs) {
-              try {
-                const { data: prs } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
-                  owner,
-                  repo,
-                  commit_sha: sha,
-                });
-                for (const pr of prs) {
-                  if (pr.state === 'closed' && pr.merged_at && !mergedPullRequestsByNumber.has(pr.number)) {
-                    mergedPullRequestsByNumber.set(pr.number, pr);
-                  }
-                }
-              } catch (err) {
-                core.warning(`Failed to list PRs for commit ${sha}: ${err.message}`);
-              }
+            if (!headBranch) {
+              core.setFailed('PR_CHANGELOG_GATING: Could not determine head branch from workflow_run event');
+              return;
             }
 
-            const mergedPullRequests = Array.from(mergedPullRequestsByNumber.values());
-            core.info(`Found ${mergedPullRequests.length} unique merged PR(s) in compare range`);
-
-            // Enrich each PR with file information
-            const evidence = [];
-
-            for (const pr of mergedPullRequests) {
-              const prNumber = pr.number;
-              let files = [];
-              try {
-                files = await github.paginate(github.rest.pulls.listFiles, {
-                  owner,
-                  repo,
-                  pull_number: prNumber,
-                  per_page: 100,
-                });
-              } catch (err) {
-                core.warning(`Failed to list files for PR #${prNumber}: ${err.message}`);
-              }
-
-              evidence.push(buildPullRequestEvidence(pr, files));
+            const headRepoFullName = workflowRun.head_repository?.full_name;
+            const baseRepoFullName = `${context.repo.owner}/${context.repo.repo}`;
+            if (headRepoFullName !== baseRepoFullName) {
+              core.info(`Skipping: workflow_run is for a fork PR (${headRepoFullName})`);
+              core.setOutput('is_pr_event', 'false');
+              return;
             }
 
-            const manifest = buildEvidenceManifest({
-              mode,
-              targetVersion,
-              previousTag,
-              compareRange,
-              evidence,
-              generatedAt: new Date().toISOString(),
+            core.info(`Resolving PR for head_sha=${headSha} head_branch=${headBranch}`);
+
+            // List open PRs from the triggering head branch
+            const { data: matchingPRs } = await github.rest.pulls.list({
+              owner,
+              repo,
+              state: 'open',
+              head: `${owner}:${headBranch}`,
+              per_page: 10,
             });
 
-            const artifactPlan = buildEvidenceArtifactPlan({ manifest });
-            fs.mkdirSync(artifactPlan.directory, { recursive: true });
-            fs.writeFileSync(artifactPlan.artifactPath, artifactPlan.formattedJson, 'utf8');
+            const candidatePRs = matchingPRs.filter((pr) => pr.head.sha === headSha);
 
-            core.setOutput('evidence_file_path', artifactPlan.artifactPath);
-            const hasEvidence = evidence.length > 0;
-            core.setOutput('has_evidence', hasEvidence ? 'true' : 'false');
-            core.info(`Evidence manifest written to ${artifactPlan.artifactPath} (${artifactPlan.prCount} PRs)`);
-            core.info(`Evidence manifest built: ${evidence.length} PRs (${manifest.user_facing_count} user-facing, ${manifest.internal_count} internal, ${manifest.uncertain_count} uncertain)`);
-      - name: Upload release evidence artifact
-        if: steps.gather_pr_evidence.outputs.has_evidence == 'true'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+            if (candidatePRs.length === 0) {
+              core.setFailed(
+                `PR_CHANGELOG_GATING: No open pull request found for head_sha=${headSha} head_branch=${headBranch}`
+              );
+              return;
+            }
+
+            if (candidatePRs.length > 1) {
+              const numbers = candidatePRs.map((pr) => `#${pr.number}`).join(', ');
+              core.setFailed(
+                `PR_CHANGELOG_GATING: Multiple open pull requests found for head_sha=${headSha}: ${numbers} — cannot resolve deterministically`
+              );
+              return;
+            }
+
+            const pr = candidatePRs[0];
+            core.info(`Resolved PR #${pr.number}: ${pr.title}`);
+
+            const labelNames = (pr.labels ?? []).map((l) => l.name);
+            const hasNoChangelog = labelNames.includes('no-changelog');
+            core.info(`PR labels: ${labelNames.join(', ') || '(none)'}`);
+            core.info(`no-changelog label present: ${hasNoChangelog}`);
+
+            const prBody = pr.body ?? '';
+            const prBodyPath = '/tmp/pr-body.txt';
+            fs.mkdirSync('/tmp', { recursive: true });
+            fs.writeFileSync(prBodyPath, prBody, 'utf8');
+            core.info(`PR body written to ${prBodyPath} (${prBody.length} bytes)`);
+
+            core.setOutput('pr_number', String(pr.number));
+            core.setOutput('pr_title', pr.title);
+            core.setOutput('pr_body', prBody);
+            core.setOutput('pr_body_path', prBodyPath);
+            core.setOutput('pr_url', pr.html_url);
+            core.setOutput('has_no_changelog_label', hasNoChangelog ? 'true' : 'false');
+      - name: Validate or skip changelog section
+        id: validate_changelog
+        if: steps.check_pr_event.outputs.is_pr_event == 'true' && steps.resolve_pr.outputs.has_no_changelog_label != 'true'
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        env:
+          PR_BODY: ${{ steps.resolve_pr.outputs.pr_body }}
+          PR_NUMBER: ${{ steps.resolve_pr.outputs.pr_number }}
         with:
-          if-no-files-found: error
-          name: changelog-release-evidence
-          path: ${{ steps.gather_pr_evidence.outputs.evidence_file_path }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            /**
+             * Helpers to parse and validate the PR-body `## Changelog` contract.
+             *
+             * Contract:
+             *   ## Changelog
+             *   Customer impact: <none|fix|enhancement|breaking>
+             *   Summary: <text>          (required when Customer impact is not "none")
+             *
+             *   ### Breaking changes
+             *   <free-form markdown>     (optional subsection)
+             */
+
+            const VALID_CUSTOMER_IMPACTS = new Set(['none', 'fix', 'enhancement', 'breaking']);
+
+            /**
+             * Extract the raw text of the `## Changelog` section from a PR body.
+             * Returns the content between `## Changelog` and the next `##`-level heading
+             * (or the end of the string).
+             *
+             * @param {string} body
+             * @returns {string|null}
+             */
+            function extractChangelogSection(body) {
+              if (!body) return null;
+
+              const lines = body.split('\n');
+              let inChangelog = false;
+              /** @type {null | '`' | '~'} */
+              let fenceType = null;
+              const content = [];
+
+              for (const line of lines) {
+                if (/^##\s+Changelog/.test(line)) {
+                  inChangelog = true;
+                  continue;
+                }
+                if (inChangelog) {
+                  if (fenceType === null && /^```/.test(line)) {
+                    fenceType = '`';
+                  } else if (fenceType === null && /^~~~/.test(line)) {
+                    fenceType = '~';
+                  } else if (fenceType === '`' && /^```/.test(line)) {
+                    fenceType = null;
+                  } else if (fenceType === '~' && /^~~~/.test(line)) {
+                    fenceType = null;
+                  }
+                  if (fenceType === null && /^##\s/.test(line)) {
+                    break;
+                  }
+                  content.push(line);
+                }
+              }
+
+              if (!inChangelog) return null;
+
+              return content.join('\n');
+            }
+
+            /**
+             * Extract the raw markdown content of the `### Breaking changes` subsection
+             * from a PR body string. Returns everything from the heading line (exclusive)
+             * up to the next `##` or `###` heading, or the end of the string.
+             *
+             * @param {string} body
+             * @returns {string|null} Trimmed markdown content, or null if not present or empty.
+             */
+            function extractBreakingChanges(changelogSection) {
+              if (!changelogSection) return null;
+
+              const lines = changelogSection.split('\n');
+              let inBreaking = false;
+              /** @type {null | '`' | '~'} */
+              let fenceType = null;
+              const content = [];
+
+              for (const line of lines) {
+                if (/^###\s+Breaking changes/.test(line)) {
+                  inBreaking = true;
+                  continue;
+                }
+                if (inBreaking) {
+                  if (fenceType === null && /^```/.test(line)) {
+                    fenceType = '`';
+                  } else if (fenceType === null && /^~~~/.test(line)) {
+                    fenceType = '~';
+                  } else if (fenceType === '`' && /^```/.test(line)) {
+                    fenceType = null;
+                  } else if (fenceType === '~' && /^~~~/.test(line)) {
+                    fenceType = null;
+                  }
+                  if (fenceType === null && /^#{2,3}\s/.test(line)) {
+                    break;
+                  }
+                  content.push(line);
+                }
+              }
+
+              if (!inBreaking) return null;
+
+              const trimmed = content.join('\n').trimEnd();
+              return trimmed.length > 0 ? trimmed : null;
+            }
+
+            /**
+             * Parse the `## Changelog` section from a PR body string.
+             *
+             * @param {string} body - Full PR body text.
+             * @returns {{ customerImpact: string|null, summary: string|null, breakingChanges: string|null }|null}
+             *   Returns null when no `## Changelog` section is found.
+             */
+            function parseChangelogSection(body) {
+              const section = extractChangelogSection(body);
+              if (section === null) return null;
+
+              // Parse `Customer impact: <value>`
+              const customerImpactMatch = section.match(/^Customer impact:\s*(.+)$/m);
+              const customerImpact = customerImpactMatch ? customerImpactMatch[1].trim() : null;
+
+              // Parse `Summary: <text>`
+              const summaryMatch = section.match(/^Summary:\s*(.+)$/m);
+              const summary = summaryMatch ? summaryMatch[1].trim() : null;
+
+              // Extract breaking changes from the changelog section only
+              const breakingChanges = extractBreakingChanges(section);
+
+              return {
+                customerImpact,
+                summary: summary || null,
+                breakingChanges,
+              };
+            }
+
+            /**
+             * Validate a parsed changelog section.
+             *
+             * @param {{ customerImpact: string|null, summary: string|null, breakingChanges: string|null }|null} parsed
+             * @returns {{ valid: boolean, errors: string[] }}
+             */
+            function validateChangelogSection(parsed) {
+              const errors = [];
+
+              if (parsed === null) {
+                errors.push('No ## Changelog section found in PR body');
+                return { valid: false, errors };
+              }
+
+              const { customerImpact, summary } = parsed;
+
+              // Validate Customer impact
+              if (!customerImpact) {
+                errors.push('Missing required field: Customer impact');
+              } else if (!VALID_CUSTOMER_IMPACTS.has(customerImpact)) {
+                errors.push(
+                  `Invalid Customer impact value: "${customerImpact}". Must be one of: ${[...VALID_CUSTOMER_IMPACTS].join(', ')}`
+                );
+              }
+
+              // Summary is required unless Customer impact is "none"
+              if (customerImpact && customerImpact !== 'none' && VALID_CUSTOMER_IMPACTS.has(customerImpact)) {
+                if (!summary) {
+                  errors.push('Missing required field: Summary (required when Customer impact is not "none")');
+                }
+              }
+
+              return {
+                valid: errors.length === 0,
+                errors,
+              };
+            }
+
+            /**
+             * Internal variant that also detects whether a `### Breaking changes` heading
+             * was present but had no content.
+             *
+             * @param {string} body
+             * @returns {{ customerImpact: string|null, summary: string|null, breakingChanges: string|null, breakingChangesHeadingPresent: boolean }|null}
+             */
+            function parseChangelogSectionFull(body) {
+              const section = extractChangelogSection(body);
+              if (section === null) return null;
+
+              const customerImpactMatch = section.match(/^Customer impact:\s*(.+)$/m);
+              const customerImpact = customerImpactMatch ? customerImpactMatch[1].trim() : null;
+
+              const summaryMatch = section.match(/^Summary:\s*(.+)$/m);
+              const summary = summaryMatch ? summaryMatch[1].trim() : null;
+
+              // Detect whether the heading exists within the changelog section (not the full body)
+              const lines = section.split('\n');
+              const breakingChangesHeadingPresent = lines.some((line) => /^###\s+Breaking changes/.test(line));
+              const breakingChanges = extractBreakingChanges(section);
+
+              return {
+                customerImpact,
+                summary: summary || null,
+                breakingChanges,
+                breakingChangesHeadingPresent,
+              };
+            }
+
+            /**
+             * Validate a full parsed changelog section (including empty breaking-changes detection).
+             *
+             * @param {ReturnType<typeof parseChangelogSectionFull>|null} parsed
+             * @returns {{ valid: boolean, errors: string[] }}
+             */
+            function validateChangelogSectionFull(parsed) {
+              const base = validateChangelogSection(parsed);
+              if (!parsed) return base;
+
+              const errors = [...base.errors];
+
+              if (parsed.breakingChangesHeadingPresent && parsed.breakingChanges === null) {
+                errors.push('### Breaking changes section is present but contains no content');
+              }
+
+              if (parsed.customerImpact === 'breaking' && !parsed.breakingChangesHeadingPresent) {
+                errors.push('Customer impact: breaking requires a ### Breaking changes subsection');
+              }
+
+              return { valid: errors.length === 0, errors };
+            }
+
+            if (typeof module !== 'undefined') {
+              module.exports = {
+                VALID_CUSTOMER_IMPACTS,
+                extractBreakingChanges,
+                extractChangelogSection,
+                parseChangelogSection,
+                parseChangelogSectionFull,
+                validateChangelogSection,
+                validateChangelogSectionFull,
+              };
+            }
+
+            const fs = require('fs');
+
+            const prNumber = process.env.PR_NUMBER || '';
+            const prBodyPath = '/tmp/pr-body.txt';
+            let prBody;
+            if (fs.existsSync(prBodyPath)) {
+              prBody = fs.readFileSync(prBodyPath, 'utf8');
+              core.info(`PR body read from ${prBodyPath} (${prBody.length} bytes)`);
+            } else {
+              prBody = process.env.PR_BODY || '';
+              core.info(`PR body read from PR_BODY env var (${prBody.length} bytes)`);
+            }
+
+            core.info(`Validating changelog section for PR #${prNumber}`);
+
+            const parsed = parseChangelogSectionFull(prBody);
+
+            if (parsed === null) {
+              // No ## Changelog section found — agent will draft it
+              core.info('No ## Changelog section found — agent will draft one');
+              core.setOutput('changelog_present', 'false');
+              core.setOutput('changelog_valid', 'false');
+            } else {
+              // Section exists — validate it
+              const validation = validateChangelogSectionFull(parsed);
+
+              if (validation.valid) {
+                core.info(`## Changelog section is valid (Customer impact: ${parsed.customerImpact})`);
+                core.setOutput('changelog_present', 'true');
+                core.setOutput('changelog_valid', 'true');
+              } else {
+                const errorList = validation.errors.map((e) => `  - ${e}`).join('\n');
+                core.setOutput('changelog_valid', 'false');
+                core.setFailed(
+                  `## Changelog section is malformed in PR #${prNumber}:\n${errorList}\n\nFix the ## Changelog section in the PR body and re-push to re-run this check.`
+                );
+              }
+            }
 
   safe_outputs:
     needs:
@@ -2227,30 +1989,25 @@ jobs:
     if: (!cancelled()) && needs.agent.result != 'skipped' && needs.detection.result == 'success'
     runs-on: ubuntu-slim
     permissions:
-      contents: write
-      issues: write
+      contents: read
       pull-requests: write
     timeout-minutes: 15
     env:
-      GH_AW_CALLER_WORKFLOW_ID: "${{ github.repository }}/changelog-generation"
+      GH_AW_CALLER_WORKFLOW_ID: "${{ github.repository }}/pr-changelog-authoring"
       GH_AW_DETECTION_CONCLUSION: ${{ needs.detection.outputs.detection_conclusion }}
       GH_AW_DETECTION_REASON: ${{ needs.detection.outputs.detection_reason }}
       GH_AW_EFFECTIVE_TOKENS: ${{ needs.agent.outputs.effective_tokens }}
       GH_AW_ENGINE_ID: "claude"
       GH_AW_ENGINE_MODEL: "llm-gateway/gpt-5.4"
-      GH_AW_WORKFLOW_ID: "changelog-generation"
-      GH_AW_WORKFLOW_NAME: "Changelog Generation"
+      GH_AW_WORKFLOW_ID: "pr-changelog-authoring"
+      GH_AW_WORKFLOW_NAME: "PR Changelog Authoring"
     outputs:
       code_push_failure_count: ${{ steps.process_safe_outputs.outputs.code_push_failure_count }}
       code_push_failure_errors: ${{ steps.process_safe_outputs.outputs.code_push_failure_errors }}
       create_discussion_error_count: ${{ steps.process_safe_outputs.outputs.create_discussion_error_count }}
       create_discussion_errors: ${{ steps.process_safe_outputs.outputs.create_discussion_errors }}
-      created_pr_number: ${{ steps.process_safe_outputs.outputs.created_pr_number }}
-      created_pr_url: ${{ steps.process_safe_outputs.outputs.created_pr_url }}
       process_safe_outputs_processed_count: ${{ steps.process_safe_outputs.outputs.processed_count }}
       process_safe_outputs_temporary_id_map: ${{ steps.process_safe_outputs.outputs.temporary_id_map }}
-      push_commit_sha: ${{ steps.process_safe_outputs.outputs.push_commit_sha }}
-      push_commit_url: ${{ steps.process_safe_outputs.outputs.push_commit_url }}
     steps:
       - name: Setup Scripts
         id: setup
@@ -2273,34 +2030,6 @@ jobs:
           mkdir -p /tmp/gh-aw/
           find "/tmp/gh-aw/" -type f -print
           echo "GH_AW_AGENT_OUTPUT=/tmp/gh-aw/agent_output.json" >> "$GITHUB_OUTPUT"
-      - name: Download patch artifact
-        continue-on-error: true
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: agent
-          path: /tmp/gh-aw/
-      - name: Checkout repository
-        if: (!cancelled()) && needs.agent.result != 'skipped' && contains(needs.agent.outputs.output_types, 'create_pull_request') || (!cancelled()) && needs.agent.result != 'skipped' && contains(needs.agent.outputs.output_types, 'push_to_pull_request_branch')
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          ref: ${{ github.base_ref || github.event.pull_request.base.ref || github.ref_name || github.event.repository.default_branch }}
-          token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
-          persist-credentials: false
-          fetch-depth: 1
-      - name: Configure Git credentials
-        if: (!cancelled()) && needs.agent.result != 'skipped' && contains(needs.agent.outputs.output_types, 'create_pull_request') || (!cancelled()) && needs.agent.result != 'skipped' && contains(needs.agent.outputs.output_types, 'push_to_pull_request_branch')
-        env:
-          REPO_NAME: ${{ github.repository }}
-          SERVER_URL: ${{ github.server_url }}
-          GIT_TOKEN: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
-        run: |
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git config --global user.name "github-actions[bot]"
-          git config --global am.keepcr true
-          # Re-authenticate git with GitHub token
-          SERVER_URL_STRIPPED="${SERVER_URL#https://}"
-          git remote set-url origin "https://x-access-token:${GIT_TOKEN}@${SERVER_URL_STRIPPED}/${REPO_NAME}.git"
-          echo "Git configured with standard GitHub Actions identity"
       - name: Configure GH_HOST for enterprise compatibility
         id: ghes-host-config
         shell: bash
@@ -2315,11 +2044,10 @@ jobs:
         uses: actions/github-script@373c709c69115d41ff229c7e5df9f8788daa9553 # v9
         env:
           GH_AW_AGENT_OUTPUT: ${{ steps.setup-agent-output-env.outputs.GH_AW_AGENT_OUTPUT }}
-          GH_AW_ALLOWED_DOMAINS: "*.githubusercontent.com,anthropic.com,api.anthropic.com,api.github.com,api.npms.io,api.snapcraft.io,archive.ubuntu.com,azure.archive.ubuntu.com,bun.sh,cdn.jsdelivr.net,cdn.playwright.dev,codeload.github.com,crl.geotrust.com,crl.globalsign.com,crl.identrust.com,crl.sectigo.com,crl.thawte.com,crl.usertrust.com,crl.verisign.com,crl3.digicert.com,crl4.digicert.com,crls.ssl.com,deb.nodesource.com,deno.land,elastic.litellm-prod.ai,esm.sh,files.pythonhosted.org,get.pnpm.io,ghcr.io,github-cloud.githubusercontent.com,github-cloud.s3.amazonaws.com,github.com,go.dev,golang.org,googleapis.deno.dev,googlechromelabs.github.io,goproxy.io,host.docker.internal,json-schema.org,json.schemastore.org,jsr.io,keyserver.ubuntu.com,lfs.github.com,nodejs.org,npm.pkg.github.com,npmjs.com,npmjs.org,objects.githubusercontent.com,ocsp.digicert.com,ocsp.geotrust.com,ocsp.globalsign.com,ocsp.identrust.com,ocsp.sectigo.com,ocsp.ssl.com,ocsp.thawte.com,ocsp.usertrust.com,ocsp.verisign.com,packagecloud.io,packages.cloud.google.com,packages.microsoft.com,pkg.go.dev,playwright.download.prss.microsoft.com,ppa.launchpad.net,proxy.golang.org,pypi.org,raw.githubusercontent.com,registry.bower.io,registry.npmjs.com,registry.npmjs.org,registry.yarnpkg.com,repo.yarnpkg.com,s.symcb.com,s.symcd.com,security.ubuntu.com,sentry.io,skimdb.npmjs.com,statsig.anthropic.com,storage.googleapis.com,sum.golang.org,telemetry.vercel.com,ts-crl.ws.symantec.com,ts-ocsp.ws.symantec.com,www.googleapis.com,www.npmjs.com,www.npmjs.org,yarnpkg.com"
+          GH_AW_ALLOWED_DOMAINS: "*.githubusercontent.com,anthropic.com,api.anthropic.com,api.github.com,api.npms.io,api.snapcraft.io,archive.ubuntu.com,azure.archive.ubuntu.com,bun.sh,cdn.jsdelivr.net,cdn.playwright.dev,codeload.github.com,crl.geotrust.com,crl.globalsign.com,crl.identrust.com,crl.sectigo.com,crl.thawte.com,crl.usertrust.com,crl.verisign.com,crl3.digicert.com,crl4.digicert.com,crls.ssl.com,deb.nodesource.com,deno.land,elastic.litellm-prod.ai,esm.sh,files.pythonhosted.org,get.pnpm.io,ghcr.io,github-cloud.githubusercontent.com,github-cloud.s3.amazonaws.com,github.com,googleapis.deno.dev,googlechromelabs.github.io,host.docker.internal,json-schema.org,json.schemastore.org,jsr.io,keyserver.ubuntu.com,lfs.github.com,nodejs.org,npm.pkg.github.com,npmjs.com,npmjs.org,objects.githubusercontent.com,ocsp.digicert.com,ocsp.geotrust.com,ocsp.globalsign.com,ocsp.identrust.com,ocsp.sectigo.com,ocsp.ssl.com,ocsp.thawte.com,ocsp.usertrust.com,ocsp.verisign.com,packagecloud.io,packages.cloud.google.com,packages.microsoft.com,playwright.download.prss.microsoft.com,ppa.launchpad.net,pypi.org,raw.githubusercontent.com,registry.bower.io,registry.npmjs.com,registry.npmjs.org,registry.yarnpkg.com,repo.yarnpkg.com,s.symcb.com,s.symcd.com,security.ubuntu.com,sentry.io,skimdb.npmjs.com,statsig.anthropic.com,storage.googleapis.com,telemetry.vercel.com,ts-crl.ws.symantec.com,ts-ocsp.ws.symantec.com,www.googleapis.com,www.npmjs.com,www.npmjs.org,yarnpkg.com"
           GITHUB_SERVER_URL: ${{ github.server_url }}
           GITHUB_API_URL: ${{ github.api_url }}
-          GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG: "{\"create_pull_request\":{\"max\":1,\"max_patch_size\":1024,\"preserve_branch_name\":true,\"protected_files\":[\"package.json\",\"bun.lockb\",\"bunfig.toml\",\"deno.json\",\"deno.jsonc\",\"deno.lock\",\"global.json\",\"NuGet.Config\",\"Directory.Packages.props\",\"mix.exs\",\"mix.lock\",\"go.mod\",\"go.sum\",\"stack.yaml\",\"stack.yaml.lock\",\"pom.xml\",\"build.gradle\",\"build.gradle.kts\",\"settings.gradle\",\"settings.gradle.kts\",\"gradle.properties\",\"package-lock.json\",\"yarn.lock\",\"pnpm-lock.yaml\",\"npm-shrinkwrap.json\",\"requirements.txt\",\"Pipfile\",\"Pipfile.lock\",\"pyproject.toml\",\"setup.py\",\"setup.cfg\",\"Gemfile\",\"Gemfile.lock\",\"uv.lock\",\"CODEOWNERS\",\"CLAUDE.md\"],\"protected_path_prefixes\":[\".github/\",\".agents/\",\".claude/\"]},\"create_report_incomplete_issue\":{},\"missing_data\":{},\"missing_tool\":{},\"noop\":{\"max\":1,\"report-as-issue\":\"false\"},\"push_to_pull_request_branch\":{\"if_no_changes\":\"warn\",\"max\":1,\"max_patch_size\":1024,\"protected_files\":[\"package.json\",\"bun.lockb\",\"bunfig.toml\",\"deno.json\",\"deno.jsonc\",\"deno.lock\",\"global.json\",\"NuGet.Config\",\"Directory.Packages.props\",\"mix.exs\",\"mix.lock\",\"go.mod\",\"go.sum\",\"stack.yaml\",\"stack.yaml.lock\",\"pom.xml\",\"build.gradle\",\"build.gradle.kts\",\"settings.gradle\",\"settings.gradle.kts\",\"gradle.properties\",\"package-lock.json\",\"yarn.lock\",\"pnpm-lock.yaml\",\"npm-shrinkwrap.json\",\"requirements.txt\",\"Pipfile\",\"Pipfile.lock\",\"pyproject.toml\",\"setup.py\",\"setup.cfg\",\"Gemfile\",\"Gemfile.lock\",\"uv.lock\",\"CODEOWNERS\",\"CLAUDE.md\"],\"protected_path_prefixes\":[\".github/\",\".agents/\",\".claude/\"],\"target\":\"triggering\"},\"report_incomplete\":{},\"update_pull_request\":{\"allow_body\":true,\"allow_title\":true,\"max\":1}}"
-          GH_AW_CI_TRIGGER_TOKEN: ${{ secrets.GH_AW_CI_TRIGGER_TOKEN }}
+          GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG: "{\"create_report_incomplete_issue\":{},\"missing_data\":{},\"missing_tool\":{},\"noop\":{\"max\":1,\"report-as-issue\":\"false\"},\"report_incomplete\":{},\"update_pull_request\":{\"allow_body\":true,\"allow_title\":true,\"max\":1}}"
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
